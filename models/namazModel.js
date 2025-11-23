@@ -1,20 +1,15 @@
-import mongoose from "mongoose";
-
+// namazModel.js - Change to lowercase and consistent names
 const namazSchema = mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    date: { type: Date, required: true },
+    date: { type: String, required: true }, // Change to String "YYYY-MM-DD"
     prayers: {
-      Fajr: { type: Boolean, default: false },
-      Dhuhr: { type: Boolean, default: false },
-      Asr: { type: Boolean, default: false },
-      Maghrib: { type: Boolean, default: false },
-      Isha: { type: Boolean, default: false },
+      fajr: { type: Boolean, default: false },
+      zuhr: { type: Boolean, default: false },
+      asr: { type: Boolean, default: false },
+      maghrib: { type: Boolean, default: false },
+      isha: { type: Boolean, default: false },
     },
   },
   { timestamps: true }
 );
-
-const Namaz = mongoose.model("Namaz", namazSchema);
-
-export default Namaz;
