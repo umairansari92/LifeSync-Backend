@@ -53,6 +53,54 @@ export const markNamaz = async (req, res) => {
   }
 };
 
+
+// namazController.js - Add this function
+export const markMultiplePrayers = async (req, res) => {
+  try {
+    const { date } = req.params;
+    const { prayers } = req.body; // { fajr: false, zuhr: false, ... }
+
+    let namaz = await Namaz.findOne({ user: req.user.id, date });
+
+    if (!namaz) {
+      namaz = await Namaz.create({ 
+        user: req.user.id, 
+        date,
+        prayers: {
+          Fajr: false,
+          Dhuhr: false,
+          Asr: false,
+          Maghrib: false,
+          Isha: false
+        }
+      });
+    }
+
+    // Update multiple prayers
+    Object.keys(prayers).forEach(prayer => {
+      const prayerMap = {
+        fajr: 'Fajr',
+        zuhr: 'Dhuhr',
+        asr: 'Asr', 
+        maghrib: 'Maghrib',
+        isha: 'Isha'
+      };
+      const modelPrayer = prayerMap[prayer];
+      if (modelPrayer) {
+        namaz.prayers[modelPrayer] = prayers[prayer];
+      }
+    });
+
+    await namaz.save();
+    res.status(200).json({ message: "Prayers updated", namaz });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Routes mein add karo
+
 // Get today's Namaz
 export const getTodayNamaz = async (req, res) => {
   try {
