@@ -3,6 +3,8 @@ import {
   markNamaz,
   getNamazHistory,
   getTodayNamaz,
+  autoSaveMissedPrayers,
+  markMultiplePrayers,
 } from "../controllers/namazController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
@@ -19,5 +21,8 @@ router.get("/today", protect, getTodayNamaz);
 
 // Get history (7 or 30 days)
 router.get("/history", protect, getNamazHistory);
+
+// routes/namaz.js
+router.get("/auto-save-missed", protect, autoSaveMissedPrayers);
 
 export default router;

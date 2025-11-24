@@ -132,6 +132,52 @@ export const getTodayNamaz = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+// Auto-save missed prayers for yesterday
+export const autoSaveMissedPrayers = async (req, res) => {
+  try {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    yesterday.setHours(0, 0, 0, 0);
+
+    // Check if yesterday's entry exists
+    let yesterdayNamaz = await Namaz.findOne({
+      user: req.user.id,
+      date: yesterday
+    });
+
+    if (!yesterdayNamaz) {
+      // ✅ Auto-create yesterday's entry with missed prayers
+      yesterdayNamaz = await Namaz.create({
+        user: req.user.id,
+        date: yesterday,
+        prayers: {
+          Fajr: false,  // Automatically missed
+          Dhuhr: false, // Automatically missed
+          Asr: false,   // Automatically missed
+          Maghrib: false, // Automatically missed
+          Isha: false   // Automatically missed
+        },
+        autoSaved: true // Flag to identify auto-saved entries
+      });
+      
+      res.status(200).json({ 
+        message: "Missed prayers auto-saved for yesterday",
+        namaz: formatNamazResponse(yesterdayNamaz)
+      });
+    } else {
+      res.status(200).json({ 
+        message: "Yesterday's entry already exists",
+        namaz: formatNamazResponse(yesterdayNamaz)
+      });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
 // Get history for last N days
 export const getNamazHistory = async (req, res) => {
   try {
