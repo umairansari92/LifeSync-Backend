@@ -11,21 +11,24 @@ const expenseSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
+    linkedList: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ShoppingList",
+    },
     category: {
-  type: String,
-  enum: [
-    "food",
-    "transport",
-    "shopping",
-    "bills",
-    "health",
-    "entertainment",
-    "education",
-    "other"
-  ],
-  default: "other"
-},
-
+      type: String,
+      enum: [
+        "food",
+        "transport",
+        "shopping",
+        "bills",
+        "health",
+        "entertainment",
+        "education",
+        "other",
+      ],
+      default: "other",
+    },
     date: {
       type: Date,
       default: Date.now,
@@ -45,4 +48,4 @@ const expenseSchema = new mongoose.Schema(
 
 const Expense = mongoose.model("Expense", expenseSchema);
 
-export default Expense
+export default Expense;
