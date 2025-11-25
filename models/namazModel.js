@@ -13,3 +13,6 @@ const namazSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+export const Namaz = mongoose.model("Namaz", namazSchema);
+export default Namaz;

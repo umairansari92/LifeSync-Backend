@@ -124,51 +124,51 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-// Login
+  // Login
 
-export const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  export const loginUser = async (req, res) => {
+    try {
+      const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: "Invalid Email or Password" });
+      const user = await User.findOne({ email });
+      if (!user) return res.status(400).json({ message: "Invalid Email or Password" });
 
-    if (!user.isVerified)
-      return res.status(403).json({ message: "Please verify your email first" });
+      if (!user.isVerified)
+        return res.status(403).json({ message: "Please verify your email first" });
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid Email or Password" });
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch)
+        return res.status(400).json({ message: "Invalid Email or Password" });
 
-    // create token
-    const token = signAccessToken({ id: user._id, email: user.email });
+      // create token
+      const token = signAccessToken({ id: user._id, email: user.email });
 
-    // cookie optional, mobile friendly
-    if (process.env.NODE_ENV === "production") {
-      res.cookie("ls_token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 24 * 60 * 60 * 1000,
+      // cookie optional, mobile friendly
+      if (process.env.NODE_ENV === "production") {
+        res.cookie("ls_token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          maxAge: 24 * 60 * 60 * 1000,
+        });
+      }
+
+      return res.status(200).json({
+        message: "Login successful",
+        token, // frontend me localStorage me store karenge
+        user: {
+          id: user._id,
+          firstname: user.firstname,
+          lastname: user.lastname,
+          email: user.email,
+          profileImage: user.profileImage || null,
+        },
       });
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ message: "Server error" });
     }
-
-    return res.status(200).json({
-      message: "Login successful",
-      token, // frontend me localStorage me store karenge
-      user: {
-        id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        profileImage: user.profileImage || null,
-      },
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
+  };
 
 
 // Logout
