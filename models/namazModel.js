@@ -1,4 +1,6 @@
 // namazModel.js - Change to lowercase and consistent names
+import mongoose from "mongoose";
+
 const namazSchema = mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
