@@ -130,17 +130,12 @@ export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // find user
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "Invalid Email or Password" });
 
-    // check verified
     if (!user.isVerified)
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
+      return res.status(403).json({ message: "Please verify your email first" });
 
-    // check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
       return res.status(400).json({ message: "Invalid Email or Password" });
@@ -148,20 +143,19 @@ export const loginUser = async (req, res) => {
     // create token
     const token = signAccessToken({ id: user._id, email: user.email });
 
-    // set httpOnly cookie
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // true in prod
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-      maxAge: 24 * 60 * 60 * 1000, // match JWT_EXPIRES_IN if 1d
-    };
+    // cookie optional, mobile friendly
+    if (process.env.NODE_ENV === "production") {
+      res.cookie("ls_token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 24 * 60 * 60 * 1000,
+      });
+    }
 
-    res.cookie("ls_token", token, cookieOptions);
-
-    // return minimal user info
     return res.status(200).json({
       message: "Login successful",
-      token,
+      token, // frontend me localStorage me store karenge
       user: {
         id: user._id,
         firstname: user.firstname,
@@ -175,6 +169,7 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Logout
 export const logoutUser = async (req, res) => {
