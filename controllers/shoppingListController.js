@@ -5,10 +5,19 @@ import Expense from "../models/expenseModel.js";
 
 export const createShoppingList = async (req, res) => {
   try {
-    const { items, market } = req.body;
+    let { items, market } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Items are required" });
+    }
+
+    // Agar items string hai, to parse karo
+    if (typeof items === "string") {
+      try {
+        items = JSON.parse(items);
+      } catch (err) {
+        return res.status(400).json({ message: "Invalid items format" });
+      }
     }
 
     let receiptUrl = null;
@@ -38,6 +47,7 @@ export const createShoppingList = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const getShoppingLists = async (req, res) => {
   try {

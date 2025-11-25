@@ -143,7 +143,7 @@ export const autoSaveMissedPrayers = async (req, res) => {
     // Check if yesterday's entry exists
     let yesterdayNamaz = await Namaz.findOne({
       user: req.user.id,
-      date: yesterday
+      date: yesterday,
     });
 
     if (!yesterdayNamaz) {
@@ -152,23 +152,23 @@ export const autoSaveMissedPrayers = async (req, res) => {
         user: req.user.id,
         date: yesterday,
         prayers: {
-          Fajr: false,  // Automatically missed
+          Fajr: false, // Automatically missed
           Dhuhr: false, // Automatically missed
-          Asr: false,   // Automatically missed
+          Asr: false, // Automatically missed
           Maghrib: false, // Automatically missed
-          Isha: false   // Automatically missed
+          Isha: false, // Automatically missed
         },
-        autoSaved: true // Flag to identify auto-saved entries
+        autoSaved: true, // Flag to identify auto-saved entries
       });
-      
-      res.status(200).json({ 
+
+      res.status(200).json({
         message: "Missed prayers auto-saved for yesterday",
-        namaz: formatNamazResponse(yesterdayNamaz)
+        namaz: formatNamazResponse(yesterdayNamaz),
       });
     } else {
-      res.status(200).json({ 
+      res.status(200).json({
         message: "Yesterday's entry already exists",
-        namaz: formatNamazResponse(yesterdayNamaz)
+        namaz: formatNamazResponse(yesterdayNamaz),
       });
     }
   } catch (error) {
@@ -176,7 +176,6 @@ export const autoSaveMissedPrayers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // Get history for last N days
 export const getNamazHistory = async (req, res) => {
