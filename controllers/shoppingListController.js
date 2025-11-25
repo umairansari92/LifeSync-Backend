@@ -142,22 +142,23 @@ export const linkToExpense = async (req, res) => {
       user: req.user.id,
     });
 
-    if (!list) {
-      return res.status(404).json({ message: "List not found" });
-    }
+    if (!list) return res.status(404).json({ message: "List not found" });
+    if (list.linkedExpense) return res.status(400).json({ message: "Already linked to an expense" });
 
-    if (list.linkedExpense) {
-      return res.status(400).json({ message: "Already linked to an expense" });
-    }
+    // Convert all item prices to numbers
+    list.items = list.items.map(i => ({
+      ...i.toObject ? i.toObject() : i,
+      price: Number(i.price) || 0
+    }));
 
-    const amount = list.items.reduce((acc, item) => acc + (item.price || 0), 0);
+    const amount = list.items.reduce((acc, item) => acc + item.price, 0);
 
     const expense = await Expense.create({
       user: req.user.id,
       title: list.market || "Shopping",
       category: "shopping",
       amount,
-      linkedList: list._id   // Link added here
+      linkedList: list._id
     });
 
     list.linkedExpense = expense._id;
@@ -175,9 +176,10 @@ export const linkToExpense = async (req, res) => {
 
   } catch (error) {
     console.error("Link to expense error", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const reuseShoppingList = async (req, res) => {
