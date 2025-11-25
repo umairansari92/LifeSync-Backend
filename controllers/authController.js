@@ -161,6 +161,7 @@ export const loginUser = async (req, res) => {
     // return minimal user info
     return res.status(200).json({
       message: "Login successful",
+      token,
       user: {
         id: user._id,
         firstname: user.firstname,
