@@ -222,15 +222,24 @@ export const generateWhatsAppLink = async (req, res) => {
       return res.status(404).json({ message: "Shopping list not found" });
     }
 
-    let message = `🛒 *LifeSync Shopping List*\n`;
+    // Correctly calculate totalPrice from items
+    const totalPrice = list.items.reduce((sum, item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.price) || 0;
+      return sum + qty * price;
+    }, 0);
+
+    let message = `🛒 LifeSync Shopping List\n`;
     message += `Date: ${new Date(list.createdAt).toDateString()}\n`;
     message += `Market: ${list.market || "Not specified"}\n\n`;
 
     list.items.forEach((item, index) => {
-      message += `${index + 1}. ${item.description} - ${item.quantity || "N/A"} - ${item.price} PKR\n`;
+      const qty = item.quantity || "N/A";
+      const price = item.price || 0;
+      message += `${index + 1}. ${item.description} - ${qty} - ${price} PKR\n`;
     });
 
-    message += `\nTotal: ${list.totalPrice} PKR\n`;
+    message += `\nTotal: ${totalPrice} PKR\n`;
     message += `Status: ${list.completed ? "✅ Completed" : "🕓 Pending"}`;
 
     const encodedMessage = encodeURIComponent(message);
@@ -238,6 +247,8 @@ export const generateWhatsAppLink = async (req, res) => {
 
     res.status(200).json({ success: true, whatsappLink });
   } catch (error) {
+    console.error("Error generating WhatsApp link:", error);
     res.status(500).json({ message: "Error generating WhatsApp link", error: error.message });
   }
 };
+
