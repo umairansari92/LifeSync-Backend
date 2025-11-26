@@ -263,154 +263,116 @@ export const generateWhatsAppLink = async (req, res) => {
 export const generateWhatsAppImage = async (req, res) => {
   try {
     const list = await ShoppingList.findById(req.params.id);
-    if (!list) {
-      return res.status(404).json({ message: "Shopping list not found" });
-    }
+    if (!list) return res.status(404).json({ message: "Shopping list not found" });
 
-    const width = 900;
+    const width = 850;
     const cardPadding = 40;
-    const lineHeight = 55;
-    const itemHeight = list.items.length * lineHeight;
+    const itemHeight = 70;
 
-    const canvasHeight = 500 + itemHeight;
+    const canvasHeight = 350 + list.items.length * itemHeight;
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
     // Background
-    ctx.fillStyle = "#111827";
+    ctx.fillStyle = "#1b1d2a";
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // Card Background
-    const cardWidth = width - 80;
-    const cardHeight = canvasHeight - 80;
-    const cardX = 40;
-    const cardY = 40;
+    // Card Shadow + Rounded Card
+    const cardX = 35;
+    const cardWidth = width - 70;
+    const cardHeight = canvasHeight - 70;
 
-    ctx.fillStyle = "#1F2937";
-    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 25);
+    ctx.fillStyle = "#2f3243";
+    ctx.roundRect(cardX, 35, cardWidth, cardHeight, 22);
     ctx.fill();
 
     // Header
-    ctx.fillStyle = "#FFF";
+    ctx.fillStyle = "#fff";
     ctx.font = "bold 30px Arial";
-    ctx.fillText(`🛒 ${list.market}`, cardX + 30, cardY + 60);
-
-    ctx.font = "20px Arial";
-    ctx.fillStyle = "#D1D5DB";
-    ctx.fillText(
-      new Date(list.createdAt).toLocaleDateString(),
-      cardX + 30,
-      cardY + 100
-    );
-
-    // Status badge
-    ctx.fillStyle = list.completed ? "#10B981" : "#FBBF24";
-    ctx.roundRect(cardX + cardWidth - 150, cardY + 40, 120, 35, 15);
-    ctx.fill();
-
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 18px Arial";
-    ctx.fillText(
-      list.completed ? "Completed" : "Pending",
-      cardX + cardWidth - 130,
-      cardY + 65
-    );
-
-    // Item List
-    let y = cardY + 160;
+    ctx.fillText(list.market || "Shopping List", cardX + 30, 95);
 
     ctx.font = "18px Arial";
-    ctx.fillStyle = "#FFF";
+    ctx.fillStyle = "#bfc3d4";
+    ctx.fillText(new Date(list.createdAt).toLocaleDateString(), cardX + 30, 130);
 
-    let totalPrice = 0;
+    // Status badge
+    ctx.fillStyle = list.completed ? "#4caf50" : "#d9a000";
+    ctx.roundRect(cardWidth - 140, 70, 110, 35, 10);
+    ctx.fill();
 
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 16px Arial";
+    ctx.fillText(list.completed ? "Completed" : "Pending", cardWidth - 112, 95);
+
+    // Items
+    let y = 170;
     list.items.forEach((item) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
-      const itemTotal = qty * price;
-      totalPrice += itemTotal;
+      const total = qty * price;
 
-      // Item background container
-      ctx.fillStyle = "#374151";
+      // Item container
+      ctx.fillStyle = "#3c4054";
       ctx.roundRect(cardX + 20, y, cardWidth - 40, 50, 12);
       ctx.fill();
 
-      // Dot icon
+      // Item title
+      ctx.fillStyle = "#fff";
+      ctx.font = "18px Arial";
+      ctx.fillText(item.description, cardX + 55, y + 32);
+
+      // Small dot
+      ctx.fillStyle = "#9aa0b8";
       ctx.beginPath();
-      ctx.fillStyle = "#60A5FA";
-      ctx.arc(cardX + 45, y + 25, 6, 0, Math.PI * 2);
+      ctx.arc(cardX + 35, y + 27, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      // Item text
-      ctx.fillStyle = "#FFF";
-      ctx.font = "18px Arial";
-      ctx.fillText(item.description, cardX + 70, y + 32);
-
-      // Price info
-      ctx.fillStyle = "#93C5FD";
+      ctx.fillStyle = "#9fc0ff";
       ctx.font = "16px Arial";
       ctx.fillText(
-        `Rs ${price} x ${qty}`,
-        cardX + cardWidth - 260,
+        `Rs ${price} × ${qty}`,
+        cardWidth - 260,
         y + 22
       );
-      ctx.fillText(`= Rs ${itemTotal}`, cardX + cardWidth - 260, y + 42);
 
-      y += 60;
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 16px Arial";
+      ctx.fillText(
+        `= Rs ${total}`,
+        cardWidth - 260,
+        y + 42
+      );
+
+      y += itemHeight;
     });
 
-    // Total line
-    ctx.strokeStyle = "#1E40AF";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(cardX + 20, y + 10);
-    ctx.lineTo(cardX + cardWidth - 20, y + 10);
-    ctx.stroke();
+    // Total
+    const totalPrice = list.items.reduce((a, b) => a + b.quantity * b.price, 0);
 
-    // Total price
-    ctx.fillStyle = "#60A5FA";
-    ctx.font = "bold 26px Arial";
-    ctx.fillText(`Total: Rs ${totalPrice}`, cardX + 30, y + 60);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 22px Arial";
+    ctx.fillText(`Total: Rs ${totalPrice}`, cardX + 20, y + 50);
 
-    // Footer branding
-    ctx.fillStyle = "#9CA3AF";
-    ctx.font = "16px Arial";
+    // Footer Branding
+    ctx.fillStyle = "#9fc0ff";
+    ctx.font = "15px Arial";
     ctx.fillText(
-      "Made with love by Umair Ahmed | LifeSync",
-      cardX + 30,
-      cardY + cardHeight - 40
+      `Created with LifeSync • Contact: +923138624722`,
+      cardWidth - 350,
+      y + 50
     );
 
-    ctx.fillStyle = "#60A5FA";
-    ctx.font = "18px Arial";
-    ctx.fillText(`Contact: +923138624722`, cardX + 30, cardY + cardHeight - 20);
-
-    // Convert to Base64
+    // Return
     const buffer = canvas.toBuffer("image/png");
-    const base64Image = buffer.toString("base64");
-
     res.status(200).json({
       success: true,
-      base64Image: `data:image/png;base64,${base64Image}`,
+      base64Image: `data:image/png;base64,${buffer.toString("base64")}`,
     });
   } catch (error) {
     console.error("Error generating shopping list image:", error);
-    res.status(500).json({ message: "Error generating image" });
+    res.status(500).json({ message: "Error generating image", error: error.message });
   }
 };
 
-// Helper for rounded shapes
-CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
-  if (w < 2 * r) r = w / 2;
-  if (h < 2 * r) r = h / 2;
-  this.beginPath();
-  this.moveTo(x + r, y);
-  this.arcTo(x + w, y, x + w, y + h, r);
-  this.arcTo(x + w, y + h, x, y + h, r);
-  this.arcTo(x, y + h, x, y, r);
-  this.arcTo(x, y, x + w, y, r);
-  this.closePath();
-  return this;
-};
 
 
