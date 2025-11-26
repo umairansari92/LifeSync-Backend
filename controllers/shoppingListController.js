@@ -266,61 +266,114 @@ export const generateWhatsAppImage = async (req, res) => {
     const list = await ShoppingList.findById(req.params.id);
     if (!list) return res.status(404).json({ message: "Shopping list not found" });
 
-    const width = 800;
-    const lineHeight = 40;
-    const canvasHeight = 200 + list.items.length * lineHeight;
+    const width = 900;
+    const lineHeight = 45;
+    const cardPadding = 40;
+    const canvasHeight = 300 + list.items.length * lineHeight;
+
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
-    // Background
-    ctx.fillStyle = "#f5f5f5";
+    // Background full
+    ctx.fillStyle = "#e9eef5";
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // Header
-    ctx.fillStyle = "#333";
-    ctx.font = "bold 28px Arial";
-    ctx.fillText("🛒 LifeSync Shopping List", 20, 40);
+    // Main Card
+    const cardX = 40;
+    const cardY = 40;
+    const cardWidth = width - 80;
+    const cardHeight = canvasHeight - 80;
+
+    ctx.fillStyle = "#fff";
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 20);
+    ctx.fill();
+
+    // Header Gradient
+    const gradient = ctx.createLinearGradient(cardX, cardY, cardX, cardY + 120);
+    gradient.addColorStop(0, "#2b5876");
+    gradient.addColorStop(1, "#4e4376");
+
+    ctx.fillStyle = gradient;
+    ctx.roundRect(cardX, cardY, cardWidth, 120, { tl: 20, tr: 20, br: 0, bl: 0 });
+    ctx.fill();
+
+    // Header Text
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 32px Arial";
+    ctx.fillText("LifeSync Shopping List", cardX + 30, cardY + 55);
+
     ctx.font = "20px Arial";
-    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, 20, 80);
-    ctx.fillText(`Market: ${list.market || "N/A"}`, 20, 110);
+    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, cardX + 30, cardY + 90);
+    ctx.fillText(`Market: ${list.market || "N/A"}`, cardX + 320, cardY + 90);
 
     // Table Header
-    ctx.fillStyle = "#000";
-    ctx.font = "bold 18px Arial";
-    ctx.fillText("Description", 20, 150);
-    ctx.fillText("Qty", 400, 150);
-    ctx.fillText("Unit Price", 500, 150);
-    ctx.fillText("Total", 650, 150);
+    let y = cardY + 160;
+    ctx.fillStyle = "#2d2d2d";
+    ctx.font = "bold 22px Arial";
+
+    ctx.fillText("Item", cardX + 30, y);
+    ctx.fillText("Qty", cardX + 350, y);
+    ctx.fillText("Price", cardX + 450, y);
+    ctx.fillText("Total", cardX + 580, y);
+
+    // Divider Line
+    ctx.strokeStyle = "#ccc";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 20, y + 10);
+    ctx.lineTo(cardX + cardWidth - 20, y + 10);
+    ctx.stroke();
 
     // Table Rows
-    ctx.font = "16px Arial";
-    let y = 180;
+    ctx.font = "18px Arial";
+    y += 40;
     let totalPrice = 0;
-    list.items.forEach((item) => {
+
+    list.items.forEach(item => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
       const itemTotal = qty * price;
       totalPrice += itemTotal;
 
-      ctx.fillText(item.description, 20, y);
-      ctx.fillText(qty.toString(), 400, y);
-      ctx.fillText(price.toString(), 500, y);
-      ctx.fillText(itemTotal.toString(), 650, y);
+      ctx.fillStyle = "#333";
+
+      ctx.fillText(item.description, cardX + 30, y);
+      ctx.fillText(qty.toString(), cardX + 350, y);
+      ctx.fillText(price.toString(), cardX + 450, y);
+      ctx.fillText(itemTotal.toString(), cardX + 580, y);
+
       y += lineHeight;
     });
 
-    // Total & Status
-    ctx.font = "bold 20px Arial";
-    ctx.fillText(`Total: ${totalPrice} PKR`, 20, y + 30);
-    ctx.fillText(`Status: ${list.completed ? "✅ Completed" : "🕓 Pending"}`, 400, y + 30);
+    // Bottom Summary Box
+    ctx.fillStyle = "#f7f7f7";
+    ctx.roundRect(cardX + 20, y + 10, cardWidth - 40, 90, 12);
+    ctx.fill();
 
-    // Convert to Base64 and return
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 22px Arial";
+    ctx.fillText(`Total: ${totalPrice} PKR`, cardX + 40, y + 55);
+
+    ctx.font = "bold 20px Arial";
+    ctx.fillStyle = list.completed ? "#0a7d28" : "#b35a00";
+    ctx.fillText(
+      `Status: ${list.completed ? "Completed" : "Pending"}`,
+      cardX + 350,
+      y + 55
+    );
+
+    // Return Base64
     const buffer = canvas.toBuffer("image/png");
     const base64Image = buffer.toString("base64");
-    res.status(200).json({ success: true, base64Image: `data:image/png;base64,${base64Image}` });
+
+    res.status(200).json({
+      success: true,
+      base64Image: `data:image/png;base64,${base64Image}`,
+    });
 
   } catch (error) {
     console.error("Error generating shopping list image:", error);
     res.status(500).json({ message: "Error generating image", error: error.message });
   }
 };
+
