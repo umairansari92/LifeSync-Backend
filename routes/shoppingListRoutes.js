@@ -33,7 +33,7 @@ router.post("/expense/:id", protect, linkToExpense);
 
 router.post("/reuse/:id", protect, reuseShoppingList);
 
-router.post("/share/:id", protect, generateWhatsAppLink);
+// router.post("/share/:id", protect, generateWhatsAppLink);
 
 router.post("/share/:id", protect, generateWhatsAppImage);
 
