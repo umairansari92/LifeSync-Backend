@@ -84,11 +84,16 @@ export const updateShoppingList = async (req, res) => {
   try {
     const { items, ...rest } = req.body;
 
-    const parsedItems = items ? JSON.parse(items) : [];
+    // Remove _id from items to avoid Mongoose conflicts
+    const cleanedItems = items.map(({ _id, ...i }) => ({
+      ...i,
+      quantity: parseFloat(i.quantity) || 0,
+      price: parseFloat(i.price) || 0
+    }));
 
     const list = await ShoppingList.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      { ...rest, items: parsedItems },
+      { ...rest, items: cleanedItems },
       { new: true }
     );
 
@@ -97,9 +102,10 @@ export const updateShoppingList = async (req, res) => {
     res.status(200).json({ message: "List updated", list });
   } catch (error) {
     console.error("Update list error", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 export const deleteShoppingList = async (req, res) => {
