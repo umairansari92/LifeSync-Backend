@@ -8,11 +8,11 @@ export const markNamaz = async (req, res) => {
 
     // Convert frontend prayer names to model names
     const prayerMap = {
-      fajr: "Fajr",
-      zuhr: "Dhuhr",
-      asr: "Asr",
-      maghrib: "Maghrib",
-      isha: "Isha",
+      fajr: "fajr",
+      zuhr: "zuhr",
+      asr: "asr",
+      maghrib: "maghrib",
+      isha: "isha",
     };
 
     const modelPrayer = prayerMap[prayer] || prayer;
@@ -78,11 +78,11 @@ export const markMultiplePrayers = async (req, res) => {
     // Update multiple prayers
     Object.keys(prayers).forEach((prayer) => {
       const prayerMap = {
-        fajr: "Fajr",
-        zuhr: "Dhuhr",
-        asr: "Asr",
-        maghrib: "Maghrib",
-        isha: "Isha",
+        fajr: "fajr",
+        zuhr: "zuhr",
+        asr: "asr",
+        maghrib: "maghrib",
+        isha: "isha",
       };
       const modelPrayer = prayerMap[prayer];
       if (modelPrayer) {
@@ -218,4 +218,3 @@ const formatNamazResponse = (namaz) => {
     },
   };
 };
-
