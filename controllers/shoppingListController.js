@@ -257,3 +257,73 @@ export const generateWhatsAppLink = async (req, res) => {
 };
 
 
+import { createCanvas } from "canvas";
+import fs from "fs";
+import path from "path";
+
+export const generateWhatsAppImage = async (req, res) => {
+  try {
+    const list = await ShoppingList.findById(req.params.id);
+    if (!list) return res.status(404).json({ message: "Shopping list not found" });
+
+    const width = 800;
+    const lineHeight = 40;
+    const canvasHeight = 200 + list.items.length * lineHeight;
+    const canvas = createCanvas(width, canvasHeight);
+    const ctx = canvas.getContext("2d");
+
+    // Background
+    ctx.fillStyle = "#f5f5f5";
+    ctx.fillRect(0, 0, width, canvasHeight);
+
+    // Header
+    ctx.fillStyle = "#333";
+    ctx.font = "bold 28px Arial";
+    ctx.fillText("🛒 LifeSync Shopping List", 20, 40);
+    ctx.font = "20px Arial";
+    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, 20, 80);
+    ctx.fillText(`Market: ${list.market || "N/A"}`, 20, 110);
+
+    // Table Header
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText("Description", 20, 150);
+    ctx.fillText("Qty", 400, 150);
+    ctx.fillText("Unit Price", 500, 150);
+    ctx.fillText("Total", 650, 150);
+
+    // Table Rows
+    ctx.font = "16px Arial";
+    let y = 180;
+    let totalPrice = 0;
+    list.items.forEach((item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.price) || 0;
+      const itemTotal = qty * price;
+      totalPrice += itemTotal;
+
+      ctx.fillText(item.description, 20, y);
+      ctx.fillText(qty.toString(), 400, y);
+      ctx.fillText(price.toString(), 500, y);
+      ctx.fillText(itemTotal.toString(), 650, y);
+      y += lineHeight;
+    });
+
+    // Total & Status
+    ctx.font = "bold 20px Arial";
+    ctx.fillText(`Total: ${totalPrice} PKR`, 20, y + 30);
+    ctx.fillText(`Status: ${list.completed ? "✅ Completed" : "🕓 Pending"}`, 400, y + 30);
+
+    // Save image
+    const imagePath = path.join("tmp", `${list._id}.png`);
+    const buffer = canvas.toBuffer("image/png");
+    fs.writeFileSync(imagePath, buffer);
+
+    // Return image URL (assuming frontend can access /tmp)
+    res.status(200).json({ success: true, imageUrl: `/tmp/${list._id}.png` });
+
+  } catch (error) {
+    console.error("Error generating shopping list image:", error);
+    res.status(500).json({ message: "Error generating image", error: error.message });
+  }
+};
