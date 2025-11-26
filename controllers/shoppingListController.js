@@ -222,21 +222,25 @@ export const generateWhatsAppLink = async (req, res) => {
       return res.status(404).json({ message: "Shopping list not found" });
     }
 
-    // Correctly calculate totalPrice from items
-    const totalPrice = list.items.reduce((sum, item) => {
+    // Calculate totalPrice properly
+    let totalPrice = 0;
+    list.items.forEach((item) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
-      return sum + qty * price;
-    }, 0);
+      totalPrice += qty * price;
+    });
 
+    // Construct WhatsApp-friendly message
     let message = `🛒 LifeSync Shopping List\n`;
     message += `Date: ${new Date(list.createdAt).toDateString()}\n`;
     message += `Market: ${list.market || "Not specified"}\n\n`;
+    message += `| Description | Quantity | Unit Price | Total |\n`;
 
     list.items.forEach((item, index) => {
-      const qty = item.quantity || "N/A";
-      const price = item.price || 0;
-      message += `${index + 1}. ${item.description} - ${qty} - ${price} PKR\n`;
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.price) || 0;
+      const itemTotal = qty * price;
+      message += `${index + 1}. ${item.description} | ${qty} | ${price} | ${itemTotal}\n`;
     });
 
     message += `\nTotal: ${totalPrice} PKR\n`;
@@ -251,4 +255,5 @@ export const generateWhatsAppLink = async (req, res) => {
     res.status(500).json({ message: "Error generating WhatsApp link", error: error.message });
   }
 };
+
 
