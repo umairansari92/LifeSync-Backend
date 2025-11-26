@@ -31,11 +31,11 @@ export const markNamaz = async (req, res) => {
         user: req.user.id,
         date: queryDate,
         prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
         },
       });
     }
@@ -66,11 +66,11 @@ export const markMultiplePrayers = async (req, res) => {
         user: req.user.id,
         date,
         prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
         },
       });
     }
@@ -117,11 +117,11 @@ export const getTodayNamaz = async (req, res) => {
         user: req.user.id,
         date: today,
         prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
         },
       });
 
@@ -152,11 +152,11 @@ export const autoSaveMissedPrayers = async (req, res) => {
         user: req.user.id,
         date: yesterday,
         prayers: {
-          Fajr: false, // Automatically missed
-          Dhuhr: false, // Automatically missed
-          Asr: false, // Automatically missed
-          Maghrib: false, // Automatically missed
-          Isha: false, // Automatically missed
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
         },
         autoSaved: true, // Flag to identify auto-saved entries
       });
