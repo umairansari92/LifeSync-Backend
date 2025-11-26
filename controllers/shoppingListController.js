@@ -264,106 +264,84 @@ import path from "path";
 export const generateWhatsAppImage = async (req, res) => {
   try {
     const list = await ShoppingList.findById(req.params.id);
-    if (!list) return res.status(404).json({ message: "Shopping list not found" });
+    if (!list) {
+      return res.status(404).json({ message: "Shopping list not found" });
+    }
 
     const width = 900;
-    const lineHeight = 45;
+    const lineHeight = 60;
     const canvasHeight = 350 + list.items.length * lineHeight;
 
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
-    // Full background
-    ctx.fillStyle = "#e8f5e9"; 
+    // Background dark theme
+    ctx.fillStyle = "#1e1f29";
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // White card with shadow
-    const cardX = 40;
-    const cardY = 40;
-    const cardWidth = width - 80;
-    const cardHeight = canvasHeight - 80;
-
-    ctx.fillStyle = "white";
-    ctx.shadowColor = "rgba(0,0,0,0.2)";
-    ctx.shadowBlur = 20;
-    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 20);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Gradient header
-    const headerHeight = 110;
-    const gradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
-    gradient.addColorStop(0, "#1b5e20");
-    gradient.addColorStop(1, "#43a047");
-
-    ctx.fillStyle = gradient;
-    ctx.roundRect(cardX, cardY, cardWidth, headerHeight, { 20:20 });
+    // Card shadow container
+    ctx.fillStyle = "#2b2d3a";
+    ctx.roundRect(40, 40, width - 80, canvasHeight - 80, 20);
     ctx.fill();
 
-    // Header text
-    ctx.fillStyle = "white";
-    ctx.font = "bold 32px Arial";
-    ctx.fillText("🛒 LifeSync Shopping List", cardX + 30, cardY + 45);
+    // Header Market Name
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 30px Arial";
+    ctx.fillText(list.market || "Shopping List", 70, 90);
 
-    ctx.font = "18px Arial";
-    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, cardX + 30, cardY + 80);
-    ctx.fillText(`Market: ${list.market || "N/A"}`, cardX + 350, cardY + 80);
+    // Pending or Completed tag
+    ctx.fillStyle = list.completed ? "#22c55e" : "#fbbf24";
+    ctx.roundRect(width - 220, 60, 150, 40, 12);
+    ctx.fill();
 
-    // Table headings
-    const tableStartY = cardY + 150;
-    ctx.fillStyle = "#2e7d32";
+    ctx.fillStyle = "#000";
     ctx.font = "bold 20px Arial";
-    ctx.fillText("Description", cardX + 30, tableStartY);
-    ctx.fillText("Qty", cardX + 350, tableStartY);
-    ctx.fillText("Unit", cardX + 450, tableStartY);
-    ctx.fillText("Total", cardX + 570, tableStartY);
+    ctx.fillText(list.completed ? "Completed" : "Pending", width - 190, 88);
 
-    ctx.strokeStyle = "#ccc";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(cardX + 20, tableStartY + 10);
-    ctx.lineTo(cardX + cardWidth - 20, tableStartY + 10);
-    ctx.stroke();
-
-    // Table rows
+    ctx.fillStyle = "#a1a1a1";
     ctx.font = "18px Arial";
-    let y = tableStartY + 45;
-    let totalPrice = 0;
+    ctx.fillText(new Date(list.createdAt).toLocaleDateString(), 70, 130);
+
+    // Items
+    let y = 190;
+    let total = 0;
 
     list.items.forEach((item) => {
-      const qty = parseFloat(item.quantity) || 0;
-      const price = parseFloat(item.price) || 0;
-      const itemTotal = qty * price;
-      totalPrice += itemTotal;
+      const qty = Number(item.quantity) || 0;
+      const price = Number(item.price) || 0;
+      const totalItem = qty * price;
+      total += totalItem;
 
-      ctx.fillStyle = "#333";
-      ctx.fillText(item.description, cardX + 30, y);
-      ctx.fillText(qty.toString(), cardX + 350, y);
-      ctx.fillText(price.toString(), cardX + 450, y);
-      ctx.fillText(itemTotal.toString(), cardX + 570, y);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "20px Arial";
+      ctx.fillText("• " + item.description, 90, y);
 
-      // Row line
-      ctx.strokeStyle = "#eee";
-      ctx.beginPath();
-      ctx.moveTo(cardX + 20, y + 10);
-      ctx.lineTo(cardX + cardWidth - 20, y + 10);
-      ctx.stroke();
+      ctx.fillStyle = "#8ab4f8";
+      ctx.font = "18px Arial";
+      ctx.fillText(`Rs ${price} × ${qty}`, width - 260, y);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "18px Arial";
+      ctx.fillText(`= Rs ${totalItem}`, width - 120, y);
 
       y += lineHeight;
     });
 
-    // Total and status
-    ctx.font = "bold 22px Arial";
-    ctx.fillStyle = "#1b5e20";
-    ctx.fillText(`Total: ${totalPrice} PKR`, cardX + 30, y + 40);
+    // Footer total
+    ctx.fillStyle = "#3c3f50";
+    ctx.roundRect(40, canvasHeight - 150, width - 80, 90, 20);
+    ctx.fill();
 
-    ctx.fillText(
-      `Status: ${list.completed ? "Completed ✓" : "Pending ⏳"}`,
-      cardX + 350,
-      y + 40
-    );
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 24px Arial";
+    ctx.fillText(`Total: Rs ${total}`, 70, canvasHeight - 100);
 
-    // Base64 return
+    // Footer contact
+    ctx.fillStyle = "#8ab4f8";
+    ctx.font = "16px Arial";
+    ctx.fillText("Created with LifeSync • Contact: +923138624722", width - 440, canvasHeight - 100);
+
+    // Convert to image
     const buffer = canvas.toBuffer("image/png");
     const base64Image = buffer.toString("base64");
 
@@ -373,8 +351,11 @@ export const generateWhatsAppImage = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error generating shopping list image:", error);
-    res.status(500).json({ message: "Error generating image", error: error.message });
+    console.log(error);
+    res.status(500).json({
+      message: "Error generating image",
+      error: error.message,
+    });
   }
 };
 
