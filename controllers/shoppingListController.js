@@ -82,21 +82,25 @@ export const getShoppingListById = async (req, res) => {
 
 export const updateShoppingList = async (req, res) => {
   try {
+    const { items, ...rest } = req.body;
+
+    const parsedItems = items ? JSON.parse(items) : [];
+
     const list = await ShoppingList.findOneAndUpdate(
       { _id: req.params.id, user: req.user.id },
-      req.body,
+      { ...rest, items: parsedItems },
       { new: true }
     );
 
     if (!list) return res.status(404).json({ message: "List not found" });
 
     res.status(200).json({ message: "List updated", list });
-
   } catch (error) {
     console.error("Update list error", error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const deleteShoppingList = async (req, res) => {
   try {
