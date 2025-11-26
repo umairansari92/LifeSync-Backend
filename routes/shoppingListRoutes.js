@@ -9,6 +9,7 @@ import {
   linkToExpense,
   reuseShoppingList,
   generateWhatsAppLink,
+  generateWhatsAppImage,
 } from "../controllers/shoppingListController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
@@ -33,5 +34,7 @@ router.post("/expense/:id", protect, linkToExpense);
 router.post("/reuse/:id", protect, reuseShoppingList);
 
 router.post("/share/:id", protect, generateWhatsAppLink);
+
+router.post("/share/:id", protect, generateWhatsAppImage);
 
 export default router;
