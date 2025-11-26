@@ -266,100 +266,106 @@ export const generateWhatsAppImage = async (req, res) => {
     if (!list) return res.status(404).json({ message: "Shopping list not found" });
 
     const width = 850;
-    const cardPadding = 40;
     const itemHeight = 70;
+    const canvasHeight = 400 + list.items.length * itemHeight;
 
-    const canvasHeight = 350 + list.items.length * itemHeight;
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
-    // Background
-    ctx.fillStyle = "#1b1d2a";
+    // Background black
+    ctx.fillStyle = "#000";
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // Card Shadow + Rounded Card
+    // Card
     const cardX = 35;
     const cardWidth = width - 70;
     const cardHeight = canvasHeight - 70;
 
-    ctx.fillStyle = "#2f3243";
-    ctx.roundRect(cardX, 35, cardWidth, cardHeight, 22);
+    ctx.fillStyle = "#111"; 
+    ctx.roundRect(cardX, 35, cardWidth, cardHeight, 20);
     ctx.fill();
 
-    // Header
+    // Main Header Title
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 30px Arial";
-    ctx.fillText(list.market || "Shopping List", cardX + 30, 95);
+    ctx.font = "bold 34px Arial";
+    ctx.fillText("LifeSync Shopping List", cardX + 30, 90);
 
+    // Header Details
     ctx.font = "18px Arial";
-    ctx.fillStyle = "#bfc3d4";
-    ctx.fillText(new Date(list.createdAt).toLocaleDateString(), cardX + 30, 130);
+    ctx.fillStyle = "#bbbbbb";
 
-    // Status badge
-    ctx.fillStyle = list.completed ? "#4caf50" : "#d9a000";
-    ctx.roundRect(cardWidth - 140, 70, 110, 35, 10);
+    const dateString = new Date(list.createdAt).toDateString();
+
+    ctx.fillText(`Date: ${dateString}`, cardX + 30, 130);
+    ctx.fillText(`Market: ${list.market || "Not Provided"}`, cardX + 30, 160);
+
+    // Status Badge
+    const badgeColor = list.completed ? "#2ecc71" : "#e6b800";
+    const badgeText = list.completed ? "Completed" : "Pending";
+
+    ctx.fillStyle = badgeColor;
+    ctx.roundRect(cardWidth - 170, 110, 130, 40, 12);
     ctx.fill();
 
-    ctx.fillStyle = "#fff";
-    ctx.font = "bold 16px Arial";
-    ctx.fillText(list.completed ? "Completed" : "Pending", cardWidth - 112, 95);
+    ctx.fillStyle = "#000";
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(badgeText, cardWidth - 135, 135);
 
-    // Items
-    let y = 170;
+    // Items Header Separator
+    ctx.fillStyle = "#333";
+    ctx.fillRect(cardX + 20, 185, cardWidth - 40, 2);
+
+    // Items List
+    let y = 220;
+
     list.items.forEach((item) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
       const total = qty * price;
 
       // Item container
-      ctx.fillStyle = "#3c4054";
-      ctx.roundRect(cardX + 20, y, cardWidth - 40, 50, 12);
+      ctx.fillStyle = "#1c1c1c";
+      ctx.roundRect(cardX + 20, y, cardWidth - 40, 55, 14);
       ctx.fill();
 
-      // Item title
+      // Title
       ctx.fillStyle = "#fff";
       ctx.font = "18px Arial";
-      ctx.fillText(item.description, cardX + 55, y + 32);
+      ctx.fillText(item.description, cardX + 60, y + 35);
 
-      // Small dot
-      ctx.fillStyle = "#9aa0b8";
+      // Dot
+      ctx.fillStyle = "#888";
       ctx.beginPath();
-      ctx.arc(cardX + 35, y + 27, 6, 0, Math.PI * 2);
+      ctx.arc(cardX + 35, y + 30, 6, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = "#9fc0ff";
+      // Price and Qty
+      ctx.fillStyle = "#6ab4ff";
       ctx.font = "16px Arial";
-      ctx.fillText(
-        `Rs ${price} × ${qty}`,
-        cardWidth - 260,
-        y + 22
-      );
+      ctx.fillText(`Rs ${price} x ${qty}`, cardWidth - 260, y + 25);
 
+      // Total
       ctx.fillStyle = "#fff";
       ctx.font = "bold 16px Arial";
-      ctx.fillText(
-        `= Rs ${total}`,
-        cardWidth - 260,
-        y + 42
-      );
+      ctx.fillText(`= Rs ${total}`, cardWidth - 260, y + 45);
 
       y += itemHeight;
     });
 
-    // Total
+    // Total bill
     const totalPrice = list.items.reduce((a, b) => a + b.quantity * b.price, 0);
 
     ctx.fillStyle = "#fff";
-    ctx.font = "bold 22px Arial";
-    ctx.fillText(`Total: Rs ${totalPrice}`, cardX + 20, y + 50);
+    ctx.font = "bold 24px Arial";
+    ctx.fillText(`Total: Rs ${totalPrice}`, cardX + 30, y + 45);
 
-    // Footer Branding
-    ctx.fillStyle = "#9fc0ff";
+    // Footer
+    ctx.fillStyle = "#6ab4ff";
     ctx.font = "15px Arial";
     ctx.fillText(
-      `Created with LifeSync • Contact: +923138624722`,
-      cardWidth - 350,
-      y + 50
+      "Created with LifeSync  Contact: +923138624722",
+      cardWidth - 380,
+      y + 45
     );
 
     // Return
@@ -373,6 +379,5 @@ export const generateWhatsAppImage = async (req, res) => {
     res.status(500).json({ message: "Error generating image", error: error.message });
   }
 };
-
 
 
