@@ -2,6 +2,8 @@ import ShoppingList from "../models/shoppingList.js";
 import cloudinary from "../config/cloudinary.js";
 import { Readable } from "stream";
 import Expense from "../models/expenseModel.js";
+import { createCanvas } from "canvas";
+
 
 export const createShoppingList = async (req, res) => {
   try {
@@ -257,9 +259,6 @@ export const generateWhatsAppLink = async (req, res) => {
 };
 
 
-import { createCanvas } from "canvas";
-import fs from "fs";
-import path from "path";
 
 export const generateWhatsAppImage = async (req, res) => {
   try {
@@ -269,79 +268,124 @@ export const generateWhatsAppImage = async (req, res) => {
     }
 
     const width = 900;
-    const lineHeight = 60;
-    const canvasHeight = 350 + list.items.length * lineHeight;
+    const cardPadding = 40;
+    const lineHeight = 55;
+    const itemHeight = list.items.length * lineHeight;
 
+    const canvasHeight = 500 + itemHeight;
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
-    // Background dark theme
-    ctx.fillStyle = "#1e1f29";
+    // Background
+    ctx.fillStyle = "#111827";
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // Card shadow container
-    ctx.fillStyle = "#2b2d3a";
-    ctx.roundRect(40, 40, width - 80, canvasHeight - 80, 20);
+    // Card Background
+    const cardWidth = width - 80;
+    const cardHeight = canvasHeight - 80;
+    const cardX = 40;
+    const cardY = 40;
+
+    ctx.fillStyle = "#1F2937";
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 25);
     ctx.fill();
 
-    // Header Market Name
-    ctx.fillStyle = "#ffffff";
+    // Header
+    ctx.fillStyle = "#FFF";
     ctx.font = "bold 30px Arial";
-    ctx.fillText(list.market || "Shopping List", 70, 90);
+    ctx.fillText(`🛒 ${list.market}`, cardX + 30, cardY + 60);
 
-    // Pending or Completed tag
-    ctx.fillStyle = list.completed ? "#22c55e" : "#fbbf24";
-    ctx.roundRect(width - 220, 60, 150, 40, 12);
+    ctx.font = "20px Arial";
+    ctx.fillStyle = "#D1D5DB";
+    ctx.fillText(
+      new Date(list.createdAt).toLocaleDateString(),
+      cardX + 30,
+      cardY + 100
+    );
+
+    // Status badge
+    ctx.fillStyle = list.completed ? "#10B981" : "#FBBF24";
+    ctx.roundRect(cardX + cardWidth - 150, cardY + 40, 120, 35, 15);
     ctx.fill();
 
     ctx.fillStyle = "#000";
-    ctx.font = "bold 20px Arial";
-    ctx.fillText(list.completed ? "Completed" : "Pending", width - 190, 88);
+    ctx.font = "bold 18px Arial";
+    ctx.fillText(
+      list.completed ? "Completed" : "Pending",
+      cardX + cardWidth - 130,
+      cardY + 65
+    );
 
-    ctx.fillStyle = "#a1a1a1";
+    // Item List
+    let y = cardY + 160;
+
     ctx.font = "18px Arial";
-    ctx.fillText(new Date(list.createdAt).toLocaleDateString(), 70, 130);
+    ctx.fillStyle = "#FFF";
 
-    // Items
-    let y = 190;
-    let total = 0;
+    let totalPrice = 0;
 
     list.items.forEach((item) => {
-      const qty = Number(item.quantity) || 0;
-      const price = Number(item.price) || 0;
-      const totalItem = qty * price;
-      total += totalItem;
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.price) || 0;
+      const itemTotal = qty * price;
+      totalPrice += itemTotal;
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "20px Arial";
-      ctx.fillText("• " + item.description, 90, y);
+      // Item background container
+      ctx.fillStyle = "#374151";
+      ctx.roundRect(cardX + 20, y, cardWidth - 40, 50, 12);
+      ctx.fill();
 
-      ctx.fillStyle = "#8ab4f8";
+      // Dot icon
+      ctx.beginPath();
+      ctx.fillStyle = "#60A5FA";
+      ctx.arc(cardX + 45, y + 25, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Item text
+      ctx.fillStyle = "#FFF";
       ctx.font = "18px Arial";
-      ctx.fillText(`Rs ${price} × ${qty}`, width - 260, y);
+      ctx.fillText(item.description, cardX + 70, y + 32);
 
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "18px Arial";
-      ctx.fillText(`= Rs ${totalItem}`, width - 120, y);
+      // Price info
+      ctx.fillStyle = "#93C5FD";
+      ctx.font = "16px Arial";
+      ctx.fillText(
+        `Rs ${price} x ${qty}`,
+        cardX + cardWidth - 260,
+        y + 22
+      );
+      ctx.fillText(`= Rs ${itemTotal}`, cardX + cardWidth - 260, y + 42);
 
-      y += lineHeight;
+      y += 60;
     });
 
-    // Footer total
-    ctx.fillStyle = "#3c3f50";
-    ctx.roundRect(40, canvasHeight - 150, width - 80, 90, 20);
-    ctx.fill();
+    // Total line
+    ctx.strokeStyle = "#1E40AF";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cardX + 20, y + 10);
+    ctx.lineTo(cardX + cardWidth - 20, y + 10);
+    ctx.stroke();
 
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 24px Arial";
-    ctx.fillText(`Total: Rs ${total}`, 70, canvasHeight - 100);
+    // Total price
+    ctx.fillStyle = "#60A5FA";
+    ctx.font = "bold 26px Arial";
+    ctx.fillText(`Total: Rs ${totalPrice}`, cardX + 30, y + 60);
 
-    // Footer contact
-    ctx.fillStyle = "#8ab4f8";
+    // Footer branding
+    ctx.fillStyle = "#9CA3AF";
     ctx.font = "16px Arial";
-    ctx.fillText("Created with LifeSync • Contact: +923138624722", width - 440, canvasHeight - 100);
+    ctx.fillText(
+      "Made with love by Umair Ahmed | LifeSync",
+      cardX + 30,
+      cardY + cardHeight - 40
+    );
 
-    // Convert to image
+    ctx.fillStyle = "#60A5FA";
+    ctx.font = "18px Arial";
+    ctx.fillText(`Contact: +923138624722`, cardX + 30, cardY + cardHeight - 20);
+
+    // Convert to Base64
     const buffer = canvas.toBuffer("image/png");
     const base64Image = buffer.toString("base64");
 
@@ -349,13 +393,24 @@ export const generateWhatsAppImage = async (req, res) => {
       success: true,
       base64Image: `data:image/png;base64,${base64Image}`,
     });
-
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: "Error generating image",
-      error: error.message,
-    });
+    console.error("Error generating shopping list image:", error);
+    res.status(500).json({ message: "Error generating image" });
   }
 };
+
+// Helper for rounded shapes
+CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  this.beginPath();
+  this.moveTo(x + r, y);
+  this.arcTo(x + w, y, x + w, y + h, r);
+  this.arcTo(x + w, y + h, x, y + h, r);
+  this.arcTo(x, y + h, x, y, r);
+  this.arcTo(x, y, x + w, y, r);
+  this.closePath();
+  return this;
+};
+
 
