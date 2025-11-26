@@ -268,101 +268,102 @@ export const generateWhatsAppImage = async (req, res) => {
 
     const width = 900;
     const lineHeight = 45;
-    const cardPadding = 40;
-    const canvasHeight = 300 + list.items.length * lineHeight;
+    const canvasHeight = 350 + list.items.length * lineHeight;
 
     const canvas = createCanvas(width, canvasHeight);
     const ctx = canvas.getContext("2d");
 
-    // Background full
-    ctx.fillStyle = "#e9eef5";
+    // Full background
+    ctx.fillStyle = "#e8f5e9"; 
     ctx.fillRect(0, 0, width, canvasHeight);
 
-    // Main Card
+    // White card with shadow
     const cardX = 40;
     const cardY = 40;
     const cardWidth = width - 80;
     const cardHeight = canvasHeight - 80;
 
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "white";
+    ctx.shadowColor = "rgba(0,0,0,0.2)";
+    ctx.shadowBlur = 20;
     ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 20);
     ctx.fill();
+    ctx.shadowBlur = 0;
 
-    // Header Gradient
-    const gradient = ctx.createLinearGradient(cardX, cardY, cardX, cardY + 120);
-    gradient.addColorStop(0, "#2b5876");
-    gradient.addColorStop(1, "#4e4376");
+    // Gradient header
+    const headerHeight = 110;
+    const gradient = ctx.createLinearGradient(0, cardY, 0, cardY + headerHeight);
+    gradient.addColorStop(0, "#1b5e20");
+    gradient.addColorStop(1, "#43a047");
 
     ctx.fillStyle = gradient;
-    ctx.roundRect(cardX, cardY, cardWidth, 120, { tl: 20, tr: 20, br: 0, bl: 0 });
+    ctx.roundRect(cardX, cardY, cardWidth, headerHeight, { 20:20 });
     ctx.fill();
 
-    // Header Text
-    ctx.fillStyle = "#fff";
+    // Header text
+    ctx.fillStyle = "white";
     ctx.font = "bold 32px Arial";
-    ctx.fillText("LifeSync Shopping List", cardX + 30, cardY + 55);
+    ctx.fillText("🛒 LifeSync Shopping List", cardX + 30, cardY + 45);
 
-    ctx.font = "20px Arial";
-    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, cardX + 30, cardY + 90);
-    ctx.fillText(`Market: ${list.market || "N/A"}`, cardX + 320, cardY + 90);
+    ctx.font = "18px Arial";
+    ctx.fillText(`Date: ${new Date(list.createdAt).toDateString()}`, cardX + 30, cardY + 80);
+    ctx.fillText(`Market: ${list.market || "N/A"}`, cardX + 350, cardY + 80);
 
-    // Table Header
-    let y = cardY + 160;
-    ctx.fillStyle = "#2d2d2d";
-    ctx.font = "bold 22px Arial";
+    // Table headings
+    const tableStartY = cardY + 150;
+    ctx.fillStyle = "#2e7d32";
+    ctx.font = "bold 20px Arial";
+    ctx.fillText("Description", cardX + 30, tableStartY);
+    ctx.fillText("Qty", cardX + 350, tableStartY);
+    ctx.fillText("Unit", cardX + 450, tableStartY);
+    ctx.fillText("Total", cardX + 570, tableStartY);
 
-    ctx.fillText("Item", cardX + 30, y);
-    ctx.fillText("Qty", cardX + 350, y);
-    ctx.fillText("Price", cardX + 450, y);
-    ctx.fillText("Total", cardX + 580, y);
-
-    // Divider Line
     ctx.strokeStyle = "#ccc";
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(cardX + 20, y + 10);
-    ctx.lineTo(cardX + cardWidth - 20, y + 10);
+    ctx.moveTo(cardX + 20, tableStartY + 10);
+    ctx.lineTo(cardX + cardWidth - 20, tableStartY + 10);
     ctx.stroke();
 
-    // Table Rows
+    // Table rows
     ctx.font = "18px Arial";
-    y += 40;
+    let y = tableStartY + 45;
     let totalPrice = 0;
 
-    list.items.forEach(item => {
+    list.items.forEach((item) => {
       const qty = parseFloat(item.quantity) || 0;
       const price = parseFloat(item.price) || 0;
       const itemTotal = qty * price;
       totalPrice += itemTotal;
 
       ctx.fillStyle = "#333";
-
       ctx.fillText(item.description, cardX + 30, y);
       ctx.fillText(qty.toString(), cardX + 350, y);
       ctx.fillText(price.toString(), cardX + 450, y);
-      ctx.fillText(itemTotal.toString(), cardX + 580, y);
+      ctx.fillText(itemTotal.toString(), cardX + 570, y);
+
+      // Row line
+      ctx.strokeStyle = "#eee";
+      ctx.beginPath();
+      ctx.moveTo(cardX + 20, y + 10);
+      ctx.lineTo(cardX + cardWidth - 20, y + 10);
+      ctx.stroke();
 
       y += lineHeight;
     });
 
-    // Bottom Summary Box
-    ctx.fillStyle = "#f7f7f7";
-    ctx.roundRect(cardX + 20, y + 10, cardWidth - 40, 90, 12);
-    ctx.fill();
-
-    ctx.fillStyle = "#000";
+    // Total and status
     ctx.font = "bold 22px Arial";
-    ctx.fillText(`Total: ${totalPrice} PKR`, cardX + 40, y + 55);
+    ctx.fillStyle = "#1b5e20";
+    ctx.fillText(`Total: ${totalPrice} PKR`, cardX + 30, y + 40);
 
-    ctx.font = "bold 20px Arial";
-    ctx.fillStyle = list.completed ? "#0a7d28" : "#b35a00";
     ctx.fillText(
-      `Status: ${list.completed ? "Completed" : "Pending"}`,
+      `Status: ${list.completed ? "Completed ✓" : "Pending ⏳"}`,
       cardX + 350,
-      y + 55
+      y + 40
     );
 
-    // Return Base64
+    // Base64 return
     const buffer = canvas.toBuffer("image/png");
     const base64Image = buffer.toString("base64");
 
