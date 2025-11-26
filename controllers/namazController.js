@@ -1,51 +1,37 @@
 import Namaz from "../models/namazModel.js";
 
+// Convert date to "YYYY-MM-DD"
+const normalizeDate = (date) => {
+  return new Date(date).toISOString().split("T")[0];
+};
+
 // Mark a prayer as offered/missed
 export const markNamaz = async (req, res) => {
   try {
-    const { date } = req.params; // YYYY-MM-DD
+    const { date } = req.params;
     const { prayer, status } = req.body;
 
-    // Convert frontend prayer names to model names
-    const prayerMap = {
-      fajr: "Fajr",
-      zuhr: "Dhuhr",
-      asr: "Asr",
-      maghrib: "Maghrib",
-      isha: "Isha",
-    };
-
-    const modelPrayer = prayerMap[prayer] || prayer;
-
-    // Convert string date to Date object for query
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    const finalDate = normalizeDate(date);
 
     let namaz = await Namaz.findOne({
       user: req.user.id,
-      date: queryDate,
+      date: finalDate,
     });
 
     if (!namaz) {
       namaz = await Namaz.create({
         user: req.user.id,
-        date: queryDate,
-        prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
-        },
+        date: finalDate,
+        prayers: {},
       });
     }
 
-    namaz.prayers[modelPrayer] = status;
+    namaz.prayers[prayer] = status;
     await namaz.save();
 
     res.status(200).json({
-      message: `${prayer} marked as ${status ? "offered" : "missed"}`,
-      namaz: formatNamazResponse(namaz),
+      message: `${prayer} updated`,
+      namaz,
     });
   } catch (error) {
     console.error(error);
@@ -57,41 +43,26 @@ export const markNamaz = async (req, res) => {
 export const markMultiplePrayers = async (req, res) => {
   try {
     const { date } = req.params;
-    const { prayers } = req.body; // { fajr: false, zuhr: false, ... }
+    const { prayers } = req.body;
 
-    let namaz = await Namaz.findOne({ user: req.user.id, date });
+    const finalDate = normalizeDate(date);
+
+    let namaz = await Namaz.findOne({ user: req.user.id, date: finalDate });
 
     if (!namaz) {
       namaz = await Namaz.create({
         user: req.user.id,
-        date,
-        prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
-        },
+        date: finalDate,
+        prayers: {},
       });
     }
 
-    // Update multiple prayers
-    Object.keys(prayers).forEach((prayer) => {
-      const prayerMap = {
-        fajr: "Fajr",
-        zuhr: "Dhuhr",
-        asr: "Asr",
-        maghrib: "Maghrib",
-        isha: "Isha",
-      };
-      const modelPrayer = prayerMap[prayer];
-      if (modelPrayer) {
-        namaz.prayers[modelPrayer] = prayers[prayer];
-      }
+    Object.keys(prayers).forEach((key) => {
+      namaz.prayers[key] = prayers[key];
     });
 
     await namaz.save();
-    res.status(200).json({ message: "Prayers updated", namaz });
+    res.status(200).json(namaz);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
@@ -101,115 +72,81 @@ export const markMultiplePrayers = async (req, res) => {
 // Get today's Namaz
 export const getTodayNamaz = async (req, res) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = normalizeDate(new Date());
 
     let namaz = await Namaz.findOne({
       user: req.user.id,
       date: today,
     });
 
-    if (namaz) {
-      res.status(200).json(formatNamazResponse(namaz));
-    } else {
-      // ✅ AUTO-CREATE new entry for today with all false
+    if (!namaz) {
       namaz = await Namaz.create({
         user: req.user.id,
         date: today,
-        prayers: {
-          Fajr: false,
-          Dhuhr: false,
-          Asr: false,
-          Maghrib: false,
-          Isha: false,
-        },
+        prayers: {},
       });
-
-      res.status(200).json(formatNamazResponse(namaz));
     }
+
+    res.status(200).json(namaz);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Auto-save missed prayers for yesterday
+// Auto-save missed prayers
 export const autoSaveMissedPrayers = async (req, res) => {
   try {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    yesterday.setHours(0, 0, 0, 0);
 
-    // Check if yesterday's entry exists
-    let yesterdayNamaz = await Namaz.findOne({
+    const finalDate = normalizeDate(yesterday);
+
+    let namaz = await Namaz.findOne({
       user: req.user.id,
-      date: yesterday,
+      date: finalDate,
     });
 
-    if (!yesterdayNamaz) {
-      // ✅ Auto-create yesterday's entry with missed prayers
-      yesterdayNamaz = await Namaz.create({
+    if (!namaz) {
+      namaz = await Namaz.create({
         user: req.user.id,
-        date: yesterday,
+        date: finalDate,
         prayers: {
-          Fajr: false, // Automatically missed
-          Dhuhr: false, // Automatically missed
-          Asr: false, // Automatically missed
-          Maghrib: false, // Automatically missed
-          Isha: false, // Automatically missed
+          fajr: false,
+          zuhr: false,
+          asr: false,
+          maghrib: false,
+          isha: false,
         },
-        autoSaved: true, // Flag to identify auto-saved entries
-      });
-
-      res.status(200).json({
-        message: "Missed prayers auto-saved for yesterday",
-        namaz: formatNamazResponse(yesterdayNamaz),
-      });
-    } else {
-      res.status(200).json({
-        message: "Yesterday's entry already exists",
-        namaz: formatNamazResponse(yesterdayNamaz),
+        autoSaved: true,
       });
     }
+
+    res.status(200).json(namaz);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// Get history for last N days
+// Get history
 export const getNamazHistory = async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 7;
+
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days + 1);
-    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - days);
+
+    const filterDate = normalizeDate(startDate);
 
     const history = await Namaz.find({
       user: req.user.id,
-      date: { $gte: startDate },
+      date: { $gte: filterDate },
     }).sort({ date: -1 });
 
-    // Format response for frontend
-    const formattedHistory = history.map((namaz) => formatNamazResponse(namaz));
-
-    res.status(200).json(formattedHistory);
+    res.status(200).json(history);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
-};
-
-// Helper function to convert model names to frontend names
-const formatNamazResponse = (namaz) => {
-  return {
-    date: namaz.date.toISOString().split("T")[0],
-    prayers: {
-      fajr: namaz.prayers.Fajr,
-      zuhr: namaz.prayers.Dhuhr,
-      asr: namaz.prayers.Asr,
-      maghrib: namaz.prayers.Maghrib,
-      isha: namaz.prayers.Isha,
-    },
-  };
 };
