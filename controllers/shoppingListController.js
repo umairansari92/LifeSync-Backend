@@ -314,13 +314,10 @@ export const generateWhatsAppImage = async (req, res) => {
     ctx.fillText(`Total: ${totalPrice} PKR`, 20, y + 30);
     ctx.fillText(`Status: ${list.completed ? "✅ Completed" : "🕓 Pending"}`, 400, y + 30);
 
-    // Save image
-    const imagePath = path.join("tmp", `${list._id}.png`);
+    // Convert to Base64 and return
     const buffer = canvas.toBuffer("image/png");
-    fs.writeFileSync(imagePath, buffer);
-
-    // Return image URL (assuming frontend can access /tmp)
-    res.status(200).json({ success: true, imageUrl: `/tmp/${list._id}.png` });
+    const base64Image = buffer.toString("base64");
+    res.status(200).json({ success: true, base64Image: `data:image/png;base64,${base64Image}` });
 
   } catch (error) {
     console.error("Error generating shopping list image:", error);
