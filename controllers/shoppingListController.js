@@ -292,7 +292,7 @@ export const generateWhatsAppImage = async (req, res) => {
 
     // Header Details
     ctx.font = "18px Arial";
-    ctx.fillStyle = "#bbbbbb";
+    ctx.fillStyle = "#ffffffff";
 
     const dateString = new Date(list.createdAt).toDateString();
 
@@ -300,7 +300,7 @@ export const generateWhatsAppImage = async (req, res) => {
     ctx.fillText(`Market: ${list.market || "Not Provided"}`, cardX + 30, 160);
 
     // Status Badge
-    const badgeColor = list.completed ? "#2ecc71" : "#e6b800";
+    const badgeColor = list.completed ? "#2ecc71" : "#f5ebc4ff";
     const badgeText = list.completed ? "Completed" : "Pending";
 
     ctx.fillStyle = badgeColor;
@@ -312,7 +312,7 @@ export const generateWhatsAppImage = async (req, res) => {
     ctx.fillText(badgeText, cardWidth - 135, 135);
 
     // Items Header Separator
-    ctx.fillStyle = "#333";
+    ctx.fillStyle = "#d8d3d3ff";
     ctx.fillRect(cardX + 20, 185, cardWidth - 40, 2);
 
     // Items List
