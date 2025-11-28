@@ -233,12 +233,16 @@ export const generateWhatsAppLink = async (req, res) => {
     message += `Date: ${new Date(list.createdAt).toDateString()}\n`;
     message += `Market: ${list.market || "Not specified"}\n\n`;
 
-    list.items.forEach((item, index) => {
-      const qty = item.quantity || "N/A";
-      const price = item.price || 0;
-      message += `${index + 1}. ${item.description} - ${qty} - ${price} PKR\n`;
+        list.items.forEach((item) => {
+      const qty = parseFloat(item.quantity) || 0;
+      const price = parseFloat(item.price) || 0;
+      const lineTotal = qty * price;
+
+      message += `${item.description}\n`;
+      message += `Rs ${price} x ${qty} = Rs ${lineTotal}\n\n`;
     });
 
+    message += `${list.items.length} items\n`;
     message += `\nTotal: ${totalPrice} PKR\n`;
     message += `Status: ${list.completed ? "✅ Completed" : "🕓 Pending"}`;
 
