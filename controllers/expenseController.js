@@ -3,7 +3,7 @@ import Expense from "../models/expenseModel.js";
 // Create Expense
 export const addExpense = async (req, res) => {
   try {
-    const { title, amount, category, date, currency } = req.body;
+    const { title, amount, category, date, currency, description } = req.body;
 
     if (!title || !amount) {
       return res.status(400).json({ message: "Title and amount are required" });
@@ -16,6 +16,7 @@ export const addExpense = async (req, res) => {
       date: date || Date.now(),
       currency: currency || "PKR",
       user: req.user.id,
+      description: description || "", // ← add this
     });
 
     res.status(201).json({ message: "Expense added", expense });
@@ -53,7 +54,7 @@ export const updateExpense = async (req, res) => {
         .json({ message: "Expense not found or unauthorized" });
     }
 
-    const updates = req.body;
+    const updates = { ...req.body };
     Object.assign(expense, updates);
 
     await expense.save();
