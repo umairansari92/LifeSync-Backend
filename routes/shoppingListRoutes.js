@@ -34,6 +34,7 @@ router.post("/reuse/:id", protect, reuseShoppingList);
 
 router.post("/share/:id", protect, generateWhatsAppLink);
 
+router.get("/totals", protect, getTotals);
 
 
 export default router;
