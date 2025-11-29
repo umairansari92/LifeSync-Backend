@@ -256,3 +256,35 @@ export const generateWhatsAppLink = async (req, res) => {
   }
 };
 
+export const getTotals = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const lists = await ShoppingList.find({ user: userId });
+
+    let thisMonthTotal = 0;
+    let grandTotal = 0;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    lists.forEach(list => {
+      grandTotal += list.totalPrice || 0;
+
+      const listDate = new Date(list.createdAt);
+      if (listDate.getMonth() === currentMonth && listDate.getFullYear() === currentYear) {
+        thisMonthTotal += list.totalPrice || 0;
+      }
+    });
+
+    res.json({
+      thisMonthTotal,
+      grandTotal,
+    });
+
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: "Error getting totals" });
+  }
+};
