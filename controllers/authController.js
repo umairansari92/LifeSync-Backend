@@ -1,334 +1,189 @@
-import bcrypt from "bcrypt";
-import User from "../models/user.js";
-import Otp from "../models/otp.js";
-import { sendEmail } from "../utils/sendEmail.js";
-import { generateOtp } from "../utils/generateOtp.js";
-import { signAccessToken } from "../utils/jwtUtils.js";
-import cloudinary from "../config/cloudinary.js";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../api/axios";
 
-// Register User
-export const registerUser = async (req, res) => {
-  try {
-    const { firstname, lastname, email, password, phone, dob } = req.body;
+export default function Register() {
+  const navigate = useNavigate();
 
-    // Validation
-    if (!firstname || !lastname || !email || !password || !phone || !dob) {
-      return res.status(400).json({
-        message: "All fields are required",
-        success: false,
-      });
-    }
+  const [formData, setFormData] = useState({
+    firstname: "",
+    lastname: "",
+    email: "",
+    password: "",
+    phone: "",
+    dob: "",
+  });
 
-    // Check if user already exists
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({
-        message:
-          "This email is already registered. Please login or use a different email.",
-        success: false,
-        error: "DUPLICATE_EMAIL",
-      });
-    }
+  const [image, setImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-    // Check if profile image is uploaded
-    if (!req.file) {
-      return res.status(400).json({ message: "Profile image is required" });
-    }
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-    // Upload image to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      folder: "lifesync_users",
-    });
+  const handleImagePreview = (file) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+  };
 
-    // Hash password and create user
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      firstname,
-      lastname,
-      email,
-      password: hashedPassword,
-      phone,
-      dob,
-      profileImage: uploadResult.secure_url,
-    });
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
 
-    // Generate OTP
-    const otpCode = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    // Save OTP
-    await Otp.create({
-      email,
-      otp: otpCode,
-      expiresAt,
-    });
-
-    // Send OTP email
-    const emailMessage = `
-      <h3>LifeSync Verification Code</h3>
-      <p>Your verification OTP is: <b>${otpCode}</b></p>
-      <p>This OTP is valid for 10 minutes.</p>
-    `;
+    const data = new FormData();
+    data.append("firstname", formData.firstname);
+    data.append("lastname", formData.lastname);
+    data.append("email", formData.email);
+    data.append("password", formData.password);
+    data.append("phone", formData.phone);
+    data.append("dob", formData.dob);
+    if (image) data.append("image", image);
 
     try {
-      await sendEmail(email, "LifeSync Email Verification", emailMessage);
-      console.log("OTP email sent to", email);
+      const res = await api.post("/auth/register", data, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setMessage(res.data.message);
+
+      // Navigate to OTP verification page after short delay
+      setTimeout(
+        () => navigate("/verify-otp", { state: { email: formData.email } }),
+        1500
+      );
     } catch (err) {
-      console.error("Failed to send OTP email:", err.message);
-      // Rollback user and OTP if email fails
-      await User.deleteOne({ email });
-      await Otp.deleteMany({ email });
-      return res.status(500).json({
-        message: "Registration failed. Could not send OTP email.",
-        success: false,
-        error: err.message,
-      });
+      setMessage(err.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    // Registration successful
-    res.status(201).json({
-      message: "User registered successfully. OTP sent to your email.",
-      success: true,
-      email: user.email,
-    });
-  } catch (error) {
-    console.error("Registration error:", error);
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-[#0b0b0c] px-4">
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-md rounded-2xl shadow-lg p-8 border border-[#f5c54240]">
+        <h2 className="text-3xl font-bold text-center mb-6 text-[#f5c542]">
+          Create Your Account
+        </h2>
 
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({
-        message: `This ${field} is already registered. Please use a different ${field}.`,
-        success: false,
-        error: "DUPLICATE_KEY",
-      });
-    }
+        {message && (
+          <p
+            className={`text-center mb-4 text-sm font-medium ${
+              message.toLowerCase().includes("failed")
+                ? "text-red-400"
+                : "text-[#e8b43c]"
+            }`}
+          >
+            {message}
+          </p>
+        )}
 
-    res.status(500).json({
-      message: "Registration failed. Please try again.",
-      success: false,
-      error: error.message,
-    });
-  }
-};
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex gap-3">
+            <input
+              type="text"
+              name="firstname"
+              placeholder="First Name"
+              value={formData.firstname}
+              onChange={handleChange}
+              required
+              className="w-1/2 px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+            />
+            <input
+              type="text"
+              name="lastname"
+              placeholder="Last Name"
+              value={formData.lastname}
+              onChange={handleChange}
+              required
+              className="w-1/2 px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+            />
+          </div>
 
+          <input
+            type="email"
+            name="email"
+            placeholder="Email Address"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+          />
 
-export const verifyOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
+          <input
+            type="password"
+            name="password"
+            placeholder="Password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+          />
 
-    const record = await Otp.findOne({ email, otp });
-    if (!record) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
+          <input
+            type="tel"
+            name="phone"
+            placeholder="Phone Number"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+          />
 
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteMany({ email });
-      return res
-        .status(400)
-        .json({ message: "OTP expired. Please request again" });
-    }
+          <input
+            type="date"
+            name="dob"
+            value={formData.dob}
+            onChange={handleChange}
+            required
+            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-[#f5c54240] text-[#e5e5e5] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542] transition"
+          />
 
-    await User.findOneAndUpdate({ email }, { isVerified: true });
-    await Otp.deleteMany({ email });
+          <div className="flex flex-col items-center gap-3">
+            {previewUrl && (
+              <img
+                src={previewUrl}
+                className="w-20 h-20 rounded-full object-cover border-2"
+                style={{ borderColor: "#f5c542" }}
+              />
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                setImage(e.target.files[0]);
+                handleImagePreview(e.target.files[0]);
+              }}
+              className="w-full text-sm text-gray-300"
+            />
+          </div>
 
-    res.status(200).json({ message: "Email verified successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-2 rounded-lg font-semibold text-[#0b0b0c] transition ${
+              loading
+                ? "bg-[#f5c54280] cursor-not-allowed"
+                : "bg-[#f5c542] hover:bg-[#e8b43c]"
+            }`}
+          >
+            {loading ? "Registering..." : "Register"}
+          </button>
+        </form>
 
-// Login
-
-export const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user)
-      return res.status(400).json({ message: "Invalid Email or Password" });
-
-    if (!user.isVerified)
-      return res
-        .status(403)
-        .json({ message: "Please verify your email first" });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(400).json({ message: "Invalid Email or Password" });
-
-    // create token
-    const token = signAccessToken({ id: user._id, email: user.email });
-
-    // cookie optional, mobile friendly
-    if (process.env.NODE_ENV === "production") {
-      res.cookie("ls_token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 24 * 60 * 60 * 1000,
-      });
-    }
-
-    return res.status(200).json({
-      message: "Login successful",
-      token, // frontend me localStorage me store karenge
-      user: {
-        id: user._id,
-        firstname: user.firstname,
-        lastname: user.lastname,
-        email: user.email,
-        profileImage: user.profileImage || null,
-      },
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Logout
-export const logoutUser = async (req, res) => {
-  try {
-    res.clearCookie("ls_token", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    });
-    return res.status(200).json({ message: "Logged out" });
-  } catch (error) {
-    return res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Forgot Password
-export const forgotPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const otpCode = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await Otp.deleteMany({ email });
-    await Otp.create({ email, otp: otpCode, expiresAt });
-
-    const emailMessage = `
-      <h3>Password Reset Request</h3>
-      <p>Your OTP to reset password is <b>${otpCode}</b></p>
-      <p>Valid for 10 minutes</p>
-    `;
-
-    await sendEmail(email, "Reset Password OTP", emailMessage);
-
-    res.status(200).json({ message: "OTP sent to your email" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Verify OTP for reset password
-export const verifyResetOtp = async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    const record = await Otp.findOne({ email, otp });
-    if (!record) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteMany({ email });
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    res.status(200).json({ message: "OTP verified" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Reset Password
-export const resetPassword = async (req, res) => {
-  try {
-    const { email, otp, newPassword } = req.body;
-
-    const record = await Otp.findOne({ email, otp });
-    if (!record) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteMany({ email });
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await User.findOneAndUpdate({ email }, { password: hashedPassword });
-
-    await Otp.deleteMany({ email });
-
-    res.status(200).json({ message: "Password reset successful" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Request OTP for updating email
-export const requestEmailUpdateOtp = async (req, res) => {
-  try {
-    const { newEmail } = req.body;
-    const userId = req.user.id;
-
-    const existing = await User.findOne({ email: newEmail });
-    if (existing) {
-      return res.status(400).json({ message: "Email already in use" });
-    }
-
-    const otpCode = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    await Otp.deleteMany({ email: newEmail });
-    await Otp.create({ email: newEmail, otp: otpCode, expiresAt });
-
-    const message = `
-      <h3>Verify New Email</h3>
-      <p>Your OTP is <b>${otpCode}</b></p>
-      <p>Valid for 10 minutes</p>
-    `;
-
-    await sendEmail(newEmail, "Verify Your New Email", message);
-
-    res.status(200).json({ message: "OTP sent to new email" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// Verify OTP and update email
-export const updateEmail = async (req, res) => {
-  try {
-    const { newEmail, otp } = req.body;
-    const userId = req.user.id;
-
-    const record = await Otp.findOne({ email: newEmail, otp });
-    if (!record) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteMany({ email: newEmail });
-      return res.status(400).json({ message: "OTP expired" });
-    }
-
-    await User.findByIdAndUpdate(userId, { email: newEmail });
-    await Otp.deleteMany({ email: newEmail });
-
-    res.status(200).json({ message: "Email updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+        <p className="text-sm text-center mt-5 text-[#e5e5e5]">
+          Already have an account?
+          <span
+            onClick={() => navigate("/")}
+            className="ml-1 cursor-pointer font-medium text-[#f5c542] hover:underline"
+          >
+            Login
+          </span>
+        </p>
+      </div>
+    </div>
+  );
+}
