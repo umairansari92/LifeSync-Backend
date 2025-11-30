@@ -9,7 +9,6 @@ import {
   linkToExpense,
   reuseShoppingList,
   generateWhatsAppLink,
-  getTotals,
 } from "../controllers/shoppingListController.js";
 
 import { protect } from "../middleware/authMiddleware.js";
