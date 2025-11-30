@@ -6,34 +6,36 @@ import { generateOtp } from "../utils/generateOtp.js";
 import { signAccessToken } from "../utils/jwtUtils.js";
 import cloudinary from "../config/cloudinary.js";
 
+// Register User
 export const registerUser = async (req, res) => {
   try {
-     const { firstname, lastname, email, password, phone, dob } = req.body;
+    const { firstname, lastname, email, password, phone, dob } = req.body;
 
     // Validation
     if (!firstname || !lastname || !email || !password || !phone || !dob) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "All fields are required",
-        success: false 
+        success: false,
       });
     }
 
     // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
-      return res.status(400).json({ 
-        message: "This email is already registered. Please login or use a different email.",
+      return res.status(400).json({
+        message:
+          "This email is already registered. Please login or use a different email.",
         success: false,
-        error: "DUPLICATE_EMAIL"
+        error: "DUPLICATE_EMAIL",
       });
     }
 
-
     // Check if profile image is uploaded
- if (!req.file) {
+    if (!req.file) {
       return res.status(400).json({ message: "Profile image is required" });
     }
 
+    // Upload image to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
       folder: "lifesync_users",
     });
@@ -47,11 +49,9 @@ export const registerUser = async (req, res) => {
       password: hashedPassword,
       phone,
       dob,
-       profileImage: uploadResult.secure_url,
+      profileImage: uploadResult.secure_url,
     });
 
-   
-  
     // Generate OTP
     const otpCode = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -63,41 +63,54 @@ export const registerUser = async (req, res) => {
       expiresAt,
     });
 
-    // Send email
+    // Send OTP email
     const emailMessage = `
       <h3>LifeSync Verification Code</h3>
       <p>Your verification OTP is: <b>${otpCode}</b></p>
       <p>This OTP is valid for 10 minutes.</p>
     `;
-    await sendEmail(email, "LifeSync Email Verification", emailMessage);
-    await user.save();
 
-    res.status(201).json({ 
-      message: "User registered successfully. OTP sent to your email.",
-      success: true,
-      email: user.email 
-    });
-
-
-   
-  } catch (error) {
-    // Handle MongoDB duplicate key error
-    if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
-      return res.status(400).json({ 
-        message: `This ${field} is already registered. Please use a different ${field}.`,
+    try {
+      await sendEmail(email, "LifeSync Email Verification", emailMessage);
+      console.log("OTP email sent to", email);
+    } catch (err) {
+      console.error("Failed to send OTP email:", err.message);
+      // Rollback user and OTP if email fails
+      await User.deleteOne({ email });
+      await Otp.deleteMany({ email });
+      return res.status(500).json({
+        message: "Registration failed. Could not send OTP email.",
         success: false,
-        error: "DUPLICATE_KEY"
+        error: err.message,
       });
     }
-    
-    res.status(500).json({ 
+
+    // Registration successful
+    res.status(201).json({
+      message: "User registered successfully. OTP sent to your email.",
+      success: true,
+      email: user.email,
+    });
+  } catch (error) {
+    console.error("Registration error:", error);
+
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        message: `This ${field} is already registered. Please use a different ${field}.`,
+        success: false,
+        error: "DUPLICATE_KEY",
+      });
+    }
+
+    res.status(500).json({
       message: "Registration failed. Please try again.",
       success: false,
-      error: error.message 
+      error: error.message,
     });
   }
 };
+
 
 export const verifyOtp = async (req, res) => {
   try {
@@ -124,52 +137,54 @@ export const verifyOtp = async (req, res) => {
   }
 };
 
-  // Login
+// Login
 
-  export const loginUser = async (req, res) => {
-    try {
-      const { email, password } = req.body;
+export const loginUser = async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-      const user = await User.findOne({ email });
-      if (!user) return res.status(400).json({ message: "Invalid Email or Password" });
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(400).json({ message: "Invalid Email or Password" });
 
-      if (!user.isVerified)
-        return res.status(403).json({ message: "Please verify your email first" });
+    if (!user.isVerified)
+      return res
+        .status(403)
+        .json({ message: "Please verify your email first" });
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch)
-        return res.status(400).json({ message: "Invalid Email or Password" });
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid Email or Password" });
 
-      // create token
-      const token = signAccessToken({ id: user._id, email: user.email });
+    // create token
+    const token = signAccessToken({ id: user._id, email: user.email });
 
-      // cookie optional, mobile friendly
-      if (process.env.NODE_ENV === "production") {
-        res.cookie("ls_token", token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          maxAge: 24 * 60 * 60 * 1000,
-        });
-      }
-
-      return res.status(200).json({
-        message: "Login successful",
-        token, // frontend me localStorage me store karenge
-        user: {
-          id: user._id,
-          firstname: user.firstname,
-          lastname: user.lastname,
-          email: user.email,
-          profileImage: user.profileImage || null,
-        },
+    // cookie optional, mobile friendly
+    if (process.env.NODE_ENV === "production") {
+      res.cookie("ls_token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        maxAge: 24 * 60 * 60 * 1000,
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      return res.status(500).json({ message: "Server error" });
     }
-  };
 
+    return res.status(200).json({
+      message: "Login successful",
+      token, // frontend me localStorage me store karenge
+      user: {
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        email: user.email,
+        profileImage: user.profileImage || null,
+      },
+    });
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 // Logout
 export const logoutUser = async (req, res) => {
