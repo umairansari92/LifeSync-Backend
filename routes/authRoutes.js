@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, verifyOtp, loginUser, logoutUser, requestEmailUpdateOtp, updateEmail } from "../controllers/authController.js";
+import { registerUser, verifyUserOtp, loginUser, logoutUser, requestEmailUpdateOtp, updateEmail } from "../controllers/authController.js";
 import { forgotPassword, resetPassword, verifyResetOtp } from "../controllers/authController.js";
 import upload from "../middleware/multerConfig.js";
 import protect from "../middleware/authMiddleware.js";
@@ -9,7 +9,7 @@ import protect from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/register",  upload.single("image"), registerUser); //authLimiter
-router.post("/verify-otp", verifyOtp);
+router.post("/verify-otp", verifyUserOtp);
 router.post("/login",  loginUser); //authLimiter
 router.post("/logout", logoutUser);
 

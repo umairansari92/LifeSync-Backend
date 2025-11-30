@@ -5,42 +5,39 @@ import { sendEmail } from "../utils/sendEmail.js";
 import { generateOtp } from "../utils/generateOtp.js";
 import { signAccessToken } from "../utils/jwtUtils.js";
 import cloudinary from "../config/cloudinary.js";
+import { sendOtpEmail } from "../utils/sendgrid.js";
 
 // Register User
+// controllers/authController.js
+
+
+
+
 export const registerUser = async (req, res) => {
   try {
     const { firstname, lastname, email, password, phone, dob } = req.body;
 
-    // Validation
     if (!firstname || !lastname || !email || !password || !phone || !dob) {
-      return res.status(400).json({
-        message: "All fields are required",
-        success: false,
-      });
+      return res.status(400).json({ message: "All fields are required", success: false });
     }
 
-    // Check if user already exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({
-        message:
-          "This email is already registered. Please login or use a different email.",
+        message: "This email is already registered. Please login or use a different email.",
         success: false,
         error: "DUPLICATE_EMAIL",
       });
     }
 
-    // Check if profile image is uploaded
     if (!req.file) {
       return res.status(400).json({ message: "Profile image is required" });
     }
 
-    // Upload image to Cloudinary
     const uploadResult = await cloudinary.uploader.upload(req.file.path, {
       folder: "lifesync_users",
     });
 
-    // Hash password and create user
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
       firstname,
@@ -52,30 +49,15 @@ export const registerUser = async (req, res) => {
       profileImage: uploadResult.secure_url,
     });
 
-    // Generate OTP
     const otpCode = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Save OTP
-    await Otp.create({
-      email,
-      otp: otpCode,
-      expiresAt,
-    });
-
-    // Send OTP email
-    const emailMessage = `
-      <h3>LifeSync Verification Code</h3>
-      <p>Your verification OTP is: <b>${otpCode}</b></p>
-      <p>This OTP is valid for 10 minutes.</p>
-    `;
+    await Otp.create({ email, otp: otpCode, expiresAt });
 
     try {
-      await sendEmail(email, "LifeSync Email Verification", emailMessage);
-      console.log("OTP email sent to", email);
+      await sendOtpEmail(email, firstname, otpCode);
     } catch (err) {
-      console.error("Failed to send OTP email:", err.message);
-      // Rollback user and OTP if email fails
+      console.error("❌ Failed to send OTP email:", err.message);
       await User.deleteOne({ email });
       await Otp.deleteMany({ email });
       return res.status(500).json({
@@ -85,7 +67,6 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Registration successful
     res.status(201).json({
       message: "User registered successfully. OTP sent to your email.",
       success: true,
@@ -108,30 +89,6 @@ export const registerUser = async (req, res) => {
       success: false,
       error: error.message,
     });
-  }
-};
-
-
-// utils/sendgrid.js
-import sgMail from "@sendgrid/mail";
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
-
-export const sendOtpEmail = async (email, firstName, otp) => {
-  try {
-    const msg = {
-      to: email,
-      from: "your_verified_email@example.com", // verified sender in SendGrid
-      templateId: "d-ad9ccd3f5794436387bc2592aaa22e7b",
-      dynamicTemplateData: {
-        firstName,
-        otp,
-        year: new Date().getFullYear(),
-      },
-    };
-    await sgMail.send(msg);
-  } catch (error) {
-    console.error("SendGrid email error:", error);
-    throw error;
   }
 };
 
@@ -327,6 +284,29 @@ export const updateEmail = async (req, res) => {
     await Otp.deleteMany({ email: newEmail });
 
     res.status(200).json({ message: "Email updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+
+// Verify OTP for registration
+export const verifyUserOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const record = await Otp.findOne({ email, otp });
+    if (!record) return res.status(400).json({ message: "Invalid OTP" });
+
+    if (record.expiresAt < new Date()) {
+      await Otp.deleteMany({ email });
+      return res.status(400).json({ message: "OTP expired. Please request again" });
+    }
+
+    await User.findOneAndUpdate({ email }, { isVerified: true });
+    await Otp.deleteMany({ email });
+
+    res.status(200).json({ message: "Email verified successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
