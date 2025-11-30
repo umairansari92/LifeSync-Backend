@@ -112,30 +112,29 @@ export const registerUser = async (req, res) => {
 };
 
 
-export const verifyOtp = async (req, res) => {
+// utils/sendgrid.js
+import sgMail from "@sendgrid/mail";
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+export const sendOtpEmail = async (email, firstName, otp) => {
   try {
-    const { email, otp } = req.body;
-
-    const record = await Otp.findOne({ email, otp });
-    if (!record) {
-      return res.status(400).json({ message: "Invalid OTP" });
-    }
-
-    if (record.expiresAt < new Date()) {
-      await Otp.deleteMany({ email });
-      return res
-        .status(400)
-        .json({ message: "OTP expired. Please request again" });
-    }
-
-    await User.findOneAndUpdate({ email }, { isVerified: true });
-    await Otp.deleteMany({ email });
-
-    res.status(200).json({ message: "Email verified successfully" });
+    const msg = {
+      to: email,
+      from: "your_verified_email@example.com", // verified sender in SendGrid
+      templateId: "d-ad9ccd3f5794436387bc2592aaa22e7b",
+      dynamicTemplateData: {
+        firstName,
+        otp,
+        year: new Date().getFullYear(),
+      },
+    };
+    await sgMail.send(msg);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("SendGrid email error:", error);
+    throw error;
   }
 };
+
 
 // Login
 
