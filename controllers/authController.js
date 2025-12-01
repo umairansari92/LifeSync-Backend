@@ -8,7 +8,7 @@ import cloudinary from "../config/cloudinary.js";
 import { sendOtpEmail } from "../utils/sendgrid.js";
 
 // ===========================
-// REGISTER USER (OTP DISABLED)
+// REGISTER USER
 // ===========================
 
 export const registerUser = async (req, res) => {
@@ -38,8 +38,16 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
-      folder: "lifesync_users",
+    // Cloudinary upload using buffer
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "lifesync_users" },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
     });
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -52,36 +60,15 @@ export const registerUser = async (req, res) => {
       phone,
       dob,
       profileImage: uploadResult.secure_url,
-      isVerified: true, // DIRECTLY VERIFIED
+      isVerified: true, // Direct verify
     });
 
-    // ===========================
-    // OTP DISABLED
-    // ===========================
-
-    /*
-    const otpCode = generateOtp();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-    await Otp.create({ email, otp: otpCode, expiresAt });
-
-    try {
-      await sendOtpEmail(email, firstname, otpCode);
-    } catch (err) {
-      await User.deleteOne({ email });
-      await Otp.deleteMany({ email });
-      return res.status(500).json({
-        message: "Registration failed. Could not send OTP email.",
-        success: false,
-        error: err.message,
-      });
-    }
-    */
-
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully.",
       success: true,
       email: user.email,
     });
+
   } catch (error) {
     console.error("Registration error:", error);
 
@@ -101,6 +88,7 @@ export const registerUser = async (req, res) => {
     });
   }
 };
+
 
 // ===========================
 // LOGIN USER (NO VERIFICATION REQUIRED)
