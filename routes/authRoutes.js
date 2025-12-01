@@ -1,6 +1,6 @@
 import express from "express";
-import { registerUser, verifyUserOtp, loginUser, logoutUser, requestEmailUpdateOtp, updateEmail } from "../controllers/authController.js";
-import { forgotPassword, resetPassword, verifyResetOtp } from "../controllers/authController.js";
+import { registerUser, loginUser, logoutUser, requestEmailUpdateOtp, updateEmail } from "../controllers/authController.js";
+import { forgotPassword, resetPassword } from "../controllers/authController.js";
 import upload from "../middleware/multerConfig.js";
 import protect from "../middleware/authMiddleware.js";
 // import { authLimiter, generalLimiter } from "../middleware/rateLimiter.js";
@@ -9,14 +9,14 @@ import protect from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 router.post("/register",  upload.single("image"), registerUser); //authLimiter
-router.post("/verify-otp", verifyUserOtp);
+// router.post("/verify-otp", verifyUserOtp);
 router.post("/login",  loginUser); //authLimiter
 router.post("/logout", logoutUser);
 
 
 // Forgot Password and Reset Password
 router.post("/forgot-password",  forgotPassword); //authLimiter
-router.post("/verify-reset-otp",  verifyResetOtp); //generalLimiter
+// router.post("/verify-reset-otp",  verifyResetOtp); //generalLimiter
 router.post("/reset-password", resetPassword);
 
 
