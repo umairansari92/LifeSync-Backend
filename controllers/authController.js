@@ -1,11 +1,11 @@
 import bcrypt from "bcrypt";
 import User from "../models/user.js";
-import Otp from "../models/otp.js"; // kept for future but unused
-import { sendEmail } from "../utils/sendEmail.js";
-import { generateOtp } from "../utils/generateOtp.js";
+// import Otp from "../models/otp.js"; // kept for future but unused
+// import { sendEmail } from "../utils/sendEmail.js";
+// import { generateOtp } from "../utils/generateOtp.js";
 import { signAccessToken } from "../utils/jwtUtils.js";
 import cloudinary from "../config/cloudinary.js";
-import { sendOtpEmail } from "../utils/sendgrid.js";
+// import { sendOtpEmail } from "../utils/sendgrid.js";
 
 // ===========================
 // REGISTER USER
