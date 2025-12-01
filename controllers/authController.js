@@ -33,25 +33,26 @@ export const registerUser = async (req, res) => {
     }
 
     if (!req.file) {
-      return res.status(400).json({
-        message: "Profile image is required",
-      });
+      return res.status(400).json({ message: "Profile image is required" });
     }
 
-    // Cloudinary upload using buffer
-    const uploadResult = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder: "lifesync_users" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      );
-      stream.end(req.file.buffer);
+    console.log("req.file:", req.file);
+    console.log("CLOUDINARY_CLOUD_NAME:", process.env.CLOUDINARY_CLOUD_NAME);
+
+    // Upload to Cloudinary
+    const uploadResult = await cloudinary.uploader.upload(req.file.path, {
+      folder: "lifesync_users",
     });
 
+    // Delete local file after upload
+    fs.unlink(req.file.path, (err) => {
+      if (err) console.error("Failed to delete local file:", err);
+    });
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create user
     const user = await User.create({
       firstname,
       lastname,
@@ -60,15 +61,14 @@ export const registerUser = async (req, res) => {
       phone,
       dob,
       profileImage: uploadResult.secure_url,
-      isVerified: true, // Direct verify
+      isVerified: true, // Direct verification
     });
 
     return res.status(201).json({
-      message: "User registered successfully.",
+      message: "User registered successfully",
       success: true,
       email: user.email,
     });
-
   } catch (error) {
     console.error("Registration error:", error);
 
@@ -88,7 +88,6 @@ export const registerUser = async (req, res) => {
     });
   }
 };
-
 
 // ===========================
 // LOGIN USER (NO VERIFICATION REQUIRED)
