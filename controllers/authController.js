@@ -5,6 +5,7 @@ import User from "../models/user.js";
 // import { generateOtp } from "../utils/generateOtp.js";
 import { signAccessToken } from "../utils/jwtUtils.js";
 import cloudinary from "../config/cloudinary.js";
+import fs from "fs";
 // import { sendOtpEmail } from "../utils/sendgrid.js";
 
 // ===========================
