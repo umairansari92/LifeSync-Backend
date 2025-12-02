@@ -3,10 +3,11 @@ import User from "../models/user.js";
 
 export const protect = async (req, res, next) => {
   try {
-    // read token from cookie
-    const token = req.cookies?.ls_token || null;
+    // read token from cookie OR header
+    const token =
+      req.cookies?.ls_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
-      console.log(token);
+
     const decoded = verifyAccessToken(token);
     if (!decoded) return res.status(401).json({ message: "Invalid token" });
 
