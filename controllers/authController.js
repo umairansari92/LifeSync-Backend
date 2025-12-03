@@ -114,14 +114,20 @@ export const loginUser = async (req, res) => {
 
     const token = signAccessToken({ id: user._id, email: user.email });
 
+    const cookieOptions = {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+    };
+
     if (process.env.NODE_ENV === "production") {
-      res.cookie("ls_token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 24 * 60 * 60 * 1000,
-      });
+      cookieOptions.secure = true;
+      cookieOptions.sameSite = "none";
+    } else {
+      cookieOptions.secure = false;
+      cookieOptions.sameSite = "lax";
     }
+
+    res.cookie("ls_token", token, cookieOptions);
 
     return res.status(200).json({
       message: "Login successful",
