@@ -104,43 +104,48 @@ export const deleteNotePermanent = async (req, res) => {
   }
 };
 
-// Pin Note
+// Toggle Pin
 export const pinNote = async (req, res) => {
   try {
-    const note = await Note.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      { pinned: true, archived: false },
-      { new: true }
-    );
-
+    const note = await Note.findOne({ _id: req.params.id, user: req.user.id });
     if (!note) return res.status(404).json({ message: "Note not found" });
+
+    // Toggle pinned
     note.pinned = !note.pinned;
+
+    // If pinned, unarchive
     if (note.pinned) note.archived = false;
 
     await note.save();
 
-    res.status(200).json({ message: "Note pinned" });
+    res.status(200).json({ message: "Pin status updated", note });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Archive Note
+// Toggle Archive
 export const archiveNote = async (req, res) => {
   try {
-    const note = await Note.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      { archived: true, pinned: false },
-      { new: true }
-    );
-
+    const note = await Note.findOne({ _id: req.params.id, user: req.user.id });
     if (!note) return res.status(404).json({ message: "Note not found" });
 
-    res.status(200).json({ message: "Note archived" });
+    // Toggle archived
+    note.archived = !note.archived;
+
+    // If archived, unpin
+    if (note.archived) note.pinned = false;
+
+    await note.save();
+
+    res.status(200).json({ message: "Archive status updated", note });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Get pinned notes
 export const getPinnedNotes = async (req, res) => {
