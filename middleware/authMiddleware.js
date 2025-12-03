@@ -3,9 +3,7 @@ import User from "../models/user.js";
 
 export const protect = async (req, res, next) => {
   try {
-    // read token from cookie OR header
-    const token =
-      req.cookies?.ls_token || req.headers.authorization?.split(" ")[1];
+    const token = req.cookies?.ls_token || req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Not authenticated" });
 
     const decoded = verifyAccessToken(token);
@@ -17,8 +15,9 @@ export const protect = async (req, res, next) => {
     req.user = user;
     next();
   } catch (error) {
-    console.error("Protect middleware error:", error);
+    console.error(error);
     return res.status(401).json({ message: "Not authenticated" });
   }
 };
+
 export default protect;
