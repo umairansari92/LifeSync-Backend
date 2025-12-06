@@ -70,27 +70,27 @@ export const getTasbeehHistory = async (req, res) => {
 // FIXED STATS FUNCTION - FINAL
 export const getTasbeehStats = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id; // req.user.id string
     const { period } = req.query;
     const now = new Date();
 
+    // Convert string to ObjectId for aggregation match
     let match = { user: new mongoose.Types.ObjectId(userId) };
 
     if (period === "monthly") {
       match.month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    }
-
-    if (period === "yearly") {
+    } else if (period === "yearly") {
       match.year = now.getFullYear();
     }
+    // lifetime -> no extra filter
 
     const stats = await TasbeehReading.aggregate([
       { $match: match },
       { $group: { _id: "$name", total: { $sum: "$count" } } },
-      { $sort: { total: -1 } }
+      { $sort: { total: -1 } },
     ]);
 
-    res.status(200).json(stats);
+    res.status(200).json(stats); // return as array [{_id: "Tasbeeh Name", total: 123}, ...]
   } catch (err) {
     console.error("Stats error:", err);
     res.status(500).json({ message: "Error fetching stats" });
