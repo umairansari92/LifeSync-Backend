@@ -10,17 +10,8 @@ export const saveReading = async (req, res) => {
 
     let record = await QuranReading.findOne({ user: userId, date: today, name });
 
-    if (record) {
-      record.count += count;
-    } else {
-      record = new QuranReading({
-        user: userId,
-        date: today,
-        type,
-        name,
-        count,
-      });
-    }
+    if (record) record.count += count;
+    else record = new QuranReading({ user: userId, date: today, type, name, count });
 
     await record.save();
     res.status(200).json({ message: "Reading saved", record });
@@ -30,7 +21,7 @@ export const saveReading = async (req, res) => {
   }
 };
 
-// Get daily reading
+// Get today's reading
 export const getTodayReading = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -45,11 +36,11 @@ export const getTodayReading = async (req, res) => {
   }
 };
 
-// Get history (lifetime or filtered)
+// Get history
 export const getReadingHistory = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { type, period } = req.query; // type: "surah" | "complete", period: "daily" | "monthly" | "yearly" | "lifetime"
+    const { type, period } = req.query;
 
     let filter = { user: userId };
     if (type) filter.type = type;
@@ -59,15 +50,36 @@ export const getReadingHistory = async (req, res) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       filter.date = today;
-    } else if (period === "monthly") {
-      const month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
-      filter.month = month;
-    } else if (period === "yearly") {
-      filter.year = now.getFullYear();
-    }
+    } else if (period === "monthly") filter.month = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}`;
+    else if (period === "yearly") filter.year = now.getFullYear();
 
     const records = await QuranReading.find(filter).sort({ date: -1 });
     res.status(200).json(records);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Stats aggregation
+export const getReadingStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { type, period } = req.query;
+    const now = new Date();
+
+    let match = { user: userId };
+    if (type) match.type = type;
+    if (period === "monthly") match.month = `${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,"0")}`;
+    else if (period === "yearly") match.year = now.getFullYear();
+
+    const stats = await QuranReading.aggregate([
+      { $match: match },
+      { $group: { _id: "$name", total: { $sum: "$count" } } },
+      { $sort: { total: -1 } },
+    ]);
+
+    res.status(200).json(stats);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

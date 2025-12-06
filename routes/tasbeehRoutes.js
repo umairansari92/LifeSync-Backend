@@ -1,5 +1,5 @@
 import express from "express";
-import { saveTasbeeh, getTodayTasbeeh, getTasbeehHistory } from "../controllers/tasbeehController.js";
+import { saveTasbeeh, getTodayTasbeeh, getTasbeehHistory, getTasbeehStats } from "../controllers/tasbeehController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
@@ -13,4 +13,6 @@ router.get("/today", protect, getTodayTasbeeh);
 // Get Tasbeeh history
 router.get("/history", protect, getTasbeehHistory);
 
+// Get Tasbeeh stats
+router.get("/stats", protect, getTasbeehStats);
 export default router;
