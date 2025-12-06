@@ -15,4 +15,5 @@ router.get("/history", protect, getTasbeehHistory);
 
 // Get Tasbeeh stats
 router.get("/stats", protect, getTasbeehStats);
+
 export default router;
