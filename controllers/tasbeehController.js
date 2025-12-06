@@ -67,33 +67,32 @@ export const getTasbeehHistory = async (req, res) => {
 };
 
 // Stats aggregation
+// FIXED STATS FUNCTION - FINAL
 export const getTasbeehStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const { period } = req.query;
     const now = new Date();
 
-    let match = { user: userId };
+    let match = { user: new mongoose.Types.ObjectId(userId) };
 
     if (period === "monthly") {
-      match.month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
-    } else if (period === "yearly") {
-      match.year = now.getFullYear();
-    } // lifetime needs no extra filter
+      match.month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    }
 
-    // Aggregate cumulative totals for each tasbeeh
+    if (period === "yearly") {
+      match.year = now.getFullYear();
+    }
+
     const stats = await TasbeehReading.aggregate([
       { $match: match },
       { $group: { _id: "$name", total: { $sum: "$count" } } },
-      { $sort: { total: -1 } },
+      { $sort: { total: -1 } }
     ]);
 
-    // Return in format {name, total} for UI convenience
-    const formattedStats = stats.map(s => ({ name: s._id, total: s.total }));
-
-    res.status(200).json(formattedStats);
+    res.status(200).json(stats);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Stats error:", err);
+    res.status(500).json({ message: "Error fetching stats" });
   }
 };
