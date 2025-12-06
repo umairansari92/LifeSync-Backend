@@ -9,9 +9,9 @@ import noteRoutes from "./routes/noteRoutes.js";
 import taskRoutes from "./routes/taskRoutes.js";
 import expenseRoutes from "./routes/expenseRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
-import Namaz from "./models/namazModel.js";
 import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
+import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -58,6 +58,12 @@ app.use("/api/namaz", namazRoutes);
 
 // Quran API Routes
 app.use("/api/quran", quranRoutes);
+
+
+// Tasbeeh API Routes
+app.use("/api/tasbeeh", tasbeehRoutes);
+
+
 // Weather API Routes
 
 import weatherRoutes from "./routes/weatherRoutes.js";
