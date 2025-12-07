@@ -1,5 +1,6 @@
-import mongoose from "mongoose";
 import TasbeehReading from "../models/TasbeehReading.js";
+import mongoose from "mongoose"; // <--- ISKO LAZMI IMPORT KAREIN
+
 
 // Save or update daily Tasbeeh
 export const saveTasbeeh = async (req, res) => {
