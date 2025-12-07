@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import TasbeehReading from "../models/TasbeehReading.js";
 
 // Save or update daily Tasbeeh
