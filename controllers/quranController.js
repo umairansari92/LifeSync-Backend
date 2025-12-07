@@ -1,6 +1,5 @@
-// src/controllers/quranController.js
-
 import QuranReading from "../models/QuranReading.js";
+import mongoose from "mongoose"; // <-- Added for ObjectId conversion in stats
 
 // Helper to get start of today
 const getStartOfToday = () => {
@@ -9,7 +8,7 @@ const getStartOfToday = () => {
     return today;
 };
 
-// 1. Save or update daily reading (Optimized for Tasbeeh-like flow)
+// 1. Save or update daily reading (Same as Tasbeeh Flow)
 export const saveReading = async (req, res) => {
     try {
         const { type, name, count } = req.body;
@@ -48,6 +47,7 @@ export const getTodayReading = async (req, res) => {
         const userId = req.user.id;
         const today = getStartOfToday();
 
+        // Sort by creation time to show in logging order
         const records = await QuranReading.find({ user: userId, date: today }).sort({ createdAt: 1 });
         res.status(200).json(records);
     } catch (err) {
@@ -56,88 +56,113 @@ export const getTodayReading = async (req, res) => {
     }
 };
 
-// 3. Get history (Refined to use 'days' parameter for flexibility)
+// 3. Get history (Simplified and sorted like Tasbeeh history)
 export const getReadingHistory = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { days, type } = req.query; // Using 'days' instead of 'period'
+        const { period, type } = req.query; 
 
+        const now = new Date();
         let filter = { user: userId };
         if (type) filter.type = type;
 
-        if (days) {
-            const numDays = parseInt(days);
-            if (!isNaN(numDays) && numDays > 0) {
-                const pastDate = getStartOfToday();
-                pastDate.setDate(pastDate.getDate() - numDays);
-                
-                // Filter records from the start of pastDate up to now
-                filter.date = { $gte: pastDate };
-            }
+        // Filtering logic is the same as Tasbeeh history
+        if (period === "daily") {
+            const today = getStartOfToday();
+            filter.date = today;
+        } else if (period === "monthly") {
+            filter.month = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
+        } else if (period === "yearly") {
+            filter.year = now.getFullYear();
         }
 
-        // Grouping logic for history: We want total count per day.
-        const history = await QuranReading.aggregate([
-            { $match: filter },
-            { 
-                $group: { 
-                    _id: "$date", 
-                    totalCount: { $sum: "$count" },
-                    // Optionally include details about the surahs read on that day
-                    details: { $push: { name: "$name", count: "$count" } }
-                } 
-            },
-            { $sort: { _id: -1 } }, // Sort by date descending
-            { $limit: 30 } // Limit to last 30 unique days for performance
-        ]);
-        
-        // Rename _id to 'date' for client readability
-        const formattedHistory = history.map(item => ({
-            date: item._id,
-            totalCount: item.totalCount,
-            details: item.details
-        }));
-
-        res.status(200).json(formattedHistory);
+        // Tasbeeh history finds all records based on filter and sorts by date
+        const records = await QuranReading.find(filter).sort({ date: -1, createdAt: -1 });
+        res.status(200).json(records);
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Server error" });
     }
 };
 
-// 4. Stats aggregation
+// 4. Stats aggregation (Same as Tasbeeh Stats)
 export const getReadingStats = async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.id; 
         const { type, period } = req.query;
         const now = new Date();
 
-        let match = { user: userId };
+        let match = { user: new mongoose.Types.ObjectId(userId) };
         if (type) match.type = type;
         
-        // Period filtering using Model's pre-save fields
         if (period === "monthly") {
-            const monthYear = `${now.getFullYear()}-${(now.getMonth() + 1).toString().padStart(2, "0")}`;
-            match.month = monthYear;
+            match.month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
         } else if (period === "yearly") {
             match.year = now.getFullYear();
         }
 
         const stats = await QuranReading.aggregate([
             { $match: match },
-            { 
-                $group: { 
-                    _id: "$name", 
-                    total: { $sum: "$count" }, 
-                    records: { $sum: 1 } // Count how many times this surah was logged
-                } 
-            },
+            { $group: { _id: "$name", total: { $sum: "$count" } } },
             { $sort: { total: -1 } },
         ]);
 
         res.status(200).json(stats);
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Server error" });
+        console.error("Stats error:", err);
+        res.status(500).json({ message: "Error fetching stats" });
+    }
+};
+
+
+// 5. Update specific reading (CRUD - Same as Tasbeeh Update)
+export const updateReading = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { count, name } = req.body; // Allows updating count and name
+        const userId = req.user.id;
+
+        if (typeof count !== 'number' || count < 1) {
+            return res.status(400).json({ message: "Count must be a number greater than 0." });
+        }
+        
+        let updateFields = { count };
+        if (name) updateFields.name = name;
+
+        // Find the record by ID and ensure it belongs to the authenticated user
+        const record = await QuranReading.findOneAndUpdate(
+            { _id: id, user: userId },
+            updateFields,
+            { new: true, runValidators: true } 
+        );
+
+        if (!record) {
+            return res.status(404).json({ message: "Quran record not found or does not belong to user." });
+        }
+
+        res.status(200).json({ message: "Record updated successfully", record });
+    } catch (err) {
+        console.error("Update error:", err);
+        res.status(500).json({ message: "Failed to update record." });
+    }
+};
+
+
+// 6. Delete specific reading (CRUD - Same as Tasbeeh Delete)
+export const deleteReading = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const record = await QuranReading.findOneAndDelete({ _id: id, user: userId });
+
+        if (!record) {
+            return res.status(404).json({ message: "Quran record not found or does not belong to user." });
+        }
+
+        res.status(200).json({ message: "Record deleted successfully" });
+    } catch (err) {
+        console.error("Delete error:", err);
+        res.status(500).json({ message: "Failed to delete record." });
     }
 };

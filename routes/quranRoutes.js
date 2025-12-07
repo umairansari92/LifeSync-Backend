@@ -1,21 +1,34 @@
 // src/routes/quranRoutes.js
 
 import express from "express";
-import { saveReading, getTodayReading, getReadingHistory, getReadingStats } from "../controllers/quranController.js";
+import { 
+    saveReading, 
+    getTodayReading, 
+    getReadingHistory, 
+    getReadingStats,
+    updateReading, // <-- NEW
+    deleteReading // <-- NEW
+} from "../controllers/quranController.js";
 import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// Save today reading (POST /api/quran)
+// 1. Save new reading or update existing for today
 router.post("/", protect, saveReading);
 
-// Get today's reading (GET /api/quran/today)
+// 2. Get today's reading
 router.get("/today", protect, getTodayReading);
 
-// Get history (Uses query: ?days=7&type=surah) (GET /api/quran/history)
+// 3. Get history
 router.get("/history", protect, getReadingHistory);
 
-// Get reading stats (Uses query: ?period=monthly&type=surah) (GET /api/quran/stats)
+// 4. Get reading stats
 router.get("/stats", protect, getReadingStats);
+
+// 5. Update specific reading (Edit function)
+router.put("/:id", protect, updateReading);
+
+// 6. Delete specific reading (Delete function)
+router.delete("/:id", protect, deleteReading);
 
 export default router;
