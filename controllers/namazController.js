@@ -135,37 +135,54 @@ export const getTodayNamaz = async (req, res) => {
 };
 
 // Auto-save missed prayers for yesterday
-
-export const autoSaveMissedPrayers = async () => {
-  // Removed req, res to make it runnable outside Express
+export const autoSaveMissedPrayers = async (req, res) => {
   cron.schedule("0 0 * * *", async () => {
     try {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
 
-      const users = await Namaz.distinct("user");
+      // Check if yesterday's entry exists
+      let yesterdayNamaz = await Namaz.findOne({ date: yesterday });
 
-      for (let userId of users) {
-        let yesterdayNamaz = await Namaz.findOne({
-          user: userId,
+      if (!yesterdayNamaz) {
+        await Namaz.create({
+          user: null, // ya loop kar ke saare users ke liye save kar sakte ho
           date: yesterday,
+          prayers: {
+            fajr: false,
+            zuhr: false,
+            asr: false,
+            maghrib: false,
+            isha: false,
+          },
+          autoSaved: true,
         });
+        console.log("Yesterday's prayers auto-saved");
+      } else {
+        console.log("Yesterday's entry already exists");
+      }
 
-        if (!yesterdayNamaz) {
+      // Optionally reset today’s prayers for all users
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Loop through all users (agar multi-user system hai)
+      const users = await Namaz.distinct("user");
+      for (let userId of users) {
+        let todayNamaz = await Namaz.findOne({ user: userId, date: today });
+        if (!todayNamaz) {
           await Namaz.create({
             user: userId,
-            date: yesterday,
+            date: today,
             prayers: {
               fajr: false,
               zuhr: false,
               asr: false,
               maghrib: false,
               isha: false,
-            }, // Agar aap timings bhi save karna chahte hain toh woh bhi yahan add kar dein (e.g., timings: null)
-            autoSaved: true,
+            },
           });
-          console.log(`Auto-saved yesterday's prayers for user: ${userId}`);
         }
       }
     } catch (err) {
@@ -173,7 +190,6 @@ export const autoSaveMissedPrayers = async () => {
     }
   });
 };
-// Note: Is function ko server start hote hi call karna zaroori hai.
 
 // Get history for last N days
 export const getNamazHistory = async (req, res) => {
