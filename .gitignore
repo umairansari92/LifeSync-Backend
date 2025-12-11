@@ -1,3 +1,10 @@
 node_modules/
-
 .env
+
+# Credentials and sensitive files
+*Credential*.txt
+*credential*.txt
+*Credentials*.txt
+*credentials*.txt
+*.env*
+!.env.example
