@@ -3,20 +3,20 @@ import { registerUser, loginUser, logoutUser, requestEmailUpdateOtp, updateEmail
 import { forgotPassword, resetPassword } from "../controllers/authController.js";
 import upload from "../middleware/multerConfig.js";
 import protect from "../middleware/authMiddleware.js";
-// import { authLimiter, generalLimiter } from "../middleware/rateLimiter.js";
+import { authLimiter, generalLimiter } from "../middleware/rateLimiter.js";
 
 
 const router = express.Router();
 
-router.post("/register",  upload.single("image"), registerUser); //authLimiter
+router.post("/register", authLimiter, upload.single("image"), registerUser); 
 // router.post("/verify-otp", verifyUserOtp);
-router.post("/login",  loginUser); //authLimiter
+router.post("/login", authLimiter, loginUser); 
 router.post("/logout", logoutUser);
 
 
 // Forgot Password and Reset Password
-router.post("/forgot-password",  forgotPassword); //authLimiter
-// router.post("/verify-reset-otp",  verifyResetOtp); //generalLimiter
+router.post("/forgot-password", authLimiter, forgotPassword); 
+// router.post("/verify-reset-otp",generalLimiter,  verifyResetOtp); 
 router.post("/reset-password", resetPassword);
 
 
