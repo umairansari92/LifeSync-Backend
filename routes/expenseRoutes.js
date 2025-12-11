@@ -6,12 +6,13 @@ import {
   updateExpense,
   deleteExpense,
 } from "../controllers/expenseController.js";
+import { generalLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/", protect, addExpense);
-router.get("/", protect, getExpenses);
-router.put("/:id", protect, updateExpense);
-router.delete("/:id", protect, deleteExpense);
+router.post("/", protect, generalLimiter, addExpense);
+router.get("/", protect, generalLimiter, getExpenses);
+router.put("/:id", protect, generalLimiter, updateExpense);
+router.delete("/:id", protect, generalLimiter, deleteExpense);
 
 export default router;

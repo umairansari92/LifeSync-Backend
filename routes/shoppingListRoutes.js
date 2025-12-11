@@ -13,28 +13,27 @@ import {
 
 import { protect } from "../middleware/authMiddleware.js";
 import upload from "../middleware/multerConfig.js";
+import { generalLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/", protect, upload.single("receipt"), createShoppingList);
+router.post("/", protect, upload.single("receipt"), generalLimiter, createShoppingList);
 
-router.get("/list", protect, getShoppingLists);
+router.get("/list", protect, generalLimiter, getShoppingLists);
 
-router.get("/item/:id", protect, getShoppingListById);
+router.get("/item/:id", protect, generalLimiter, getShoppingListById);
+router.put("/update/:id", protect, generalLimiter, updateShoppingList);
 
-router.put("/update/:id", protect, updateShoppingList);
+router.delete("/delete/:id", protect, generalLimiter, deleteShoppingList);
 
-router.delete("/delete/:id", protect, deleteShoppingList);
+router.put("/complete/:id", protect, generalLimiter, markListCompleted);
 
-router.put("/complete/:id", protect, markListCompleted);
+router.post("/expense/:id", protect, generalLimiter, linkToExpense);
 
-router.post("/expense/:id", protect, linkToExpense);
+router.post("/reuse/:id", protect, generalLimiter, reuseShoppingList);
+router.post("/share/:id", protect, generalLimiter, generateWhatsAppLink);
 
-router.post("/reuse/:id", protect, reuseShoppingList);
-
-router.post("/share/:id", protect, generateWhatsAppLink);
-
-// router.get("/totals", protect, getTotals);
+// router.get("/totals", protect, generalLimiter, getTotals);
 
 
 export default router;

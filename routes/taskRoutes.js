@@ -8,13 +8,13 @@ import {
   deleteTask,
   markCompleted,
 } from "../controllers/taskController.js";
+import { generalLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/", protect, createTask);
-router.get("/", protect, getTasks);
-router.put("/:id", protect, updateTask);
-router.delete("/:id", protect, deleteTask);
-router.put("/complete/:id", protect, markCompleted);
-
+router.post("/", protect, generalLimiter, createTask);
+router.get("/", protect, generalLimiter, getTasks);
+router.put("/:id", protect, generalLimiter, updateTask);
+router.delete("/:id", protect, generalLimiter, deleteTask);
+router.put("/complete/:id", protect, generalLimiter, markCompleted);
 export default router;
