@@ -12,6 +12,7 @@ import dashboardRoutes from "./routes/dashboardRoutes.js";
 import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
+import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -59,10 +60,11 @@ app.use("/api/namaz", namazRoutes);
 // Quran API Routes
 app.use("/api/quran", quranRoutes);
 
-
 // Tasbeeh API Routes
 app.use("/api/tasbeeh", tasbeehRoutes);
 
+// Special Expense Routes
+app.use("/api/special-expense", specialExpenseRoutes);
 
 // Weather API Routes
 
