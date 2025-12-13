@@ -35,6 +35,7 @@ export const addIncome = async (req, res) => {
 
 
 
+
 // Get all incomes
 export const getIncomes = async (req, res) => {
   try {
@@ -101,6 +102,7 @@ export const updateIncome = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 // Delete Income
