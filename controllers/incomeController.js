@@ -6,11 +6,14 @@ const makeDate = (month, year) => new Date(year, month - 1, 1);
 // Add Income
 export const addIncome = async (req, res) => {
   try {
-    const { title, amount, source, month, year, note } = req.body;
+    const { title, amount, source, month, year, note, date } = req.body;
 
-    if (!title || !amount || !Date() || !month || !year) {
+    if (!title || !amount || !month || !year) {
       return res.status(400).json({ message: "Title, amount, month, and year are required" });
     }
+
+    // Agar user ne date bheji hai to use karo, warna month/year se bana lo
+    const finalDate = date ? new Date(date) : makeDate(month, year);
 
     const income = await Income.create({
       title,
@@ -18,19 +21,20 @@ export const addIncome = async (req, res) => {
       source: source || "other",
       month,
       year,
-      date: makeDate(month, year),
+      date: finalDate,
       note: note || "",
       user: req.user.id,
     });
 
     res.status(201).json({
       ...income.toObject(),
-      date: makeDate(income.month, income.year),
+      date: finalDate,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Get all incomes
 export const getIncomes = async (req, res) => {
@@ -86,16 +90,25 @@ export const updateIncome = async (req, res) => {
     }
 
     Object.assign(income, req.body);
+
+    // Agar month/year ya date update ho rahi hai to final date set karo
+    if (req.body.date) {
+      income.date = new Date(req.body.date);
+    } else if (req.body.month && req.body.year) {
+      income.date = makeDate(req.body.month, req.body.year);
+    }
+
     await income.save();
 
     res.json({
       ...income.toObject(),
-      date: makeDate(income.month, income.year),
+      date: income.date,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Delete Income
 export const deleteIncome = async (req, res) => {
