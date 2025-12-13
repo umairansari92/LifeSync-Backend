@@ -9,6 +9,7 @@ const incomeSchema = new mongoose.Schema(
       enum: ["salary", "wages", "freelance", "business", "other"],
       default: "other",
     },
+    date: { type: Date, required: true },
     month: { type: Number, required: true }, // 1-12
     year: { type: Number, required: true },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
