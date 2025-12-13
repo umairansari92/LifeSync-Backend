@@ -1,6 +1,7 @@
 import Income from "../models/incomeModel.js";
 
 // helper: create date from month/year
+// helper: create date from month/year
 const makeDate = (month, year) => new Date(year, month - 1, 1);
 
 // Add Income
@@ -26,12 +27,9 @@ export const addIncome = async (req, res) => {
       user: req.user.id,
     });
 
-    res.status(201).json({
-      ...income.toObject(),
-      date: finalDate,
-    });
+    res.status(201).json(income);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
 
@@ -91,7 +89,7 @@ export const updateIncome = async (req, res) => {
 
     Object.assign(income, req.body);
 
-    // Agar month/year ya date update ho rahi hai to final date set karo
+    // Agar date bheji hai to use karo, warna month/year se bana lo
     if (req.body.date) {
       income.date = new Date(req.body.date);
     } else if (req.body.month && req.body.year) {
@@ -99,16 +97,11 @@ export const updateIncome = async (req, res) => {
     }
 
     await income.save();
-
-    res.json({
-      ...income.toObject(),
-      date: income.date,
-    });
+    res.json(income);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Server error" });
   }
 };
-
 
 // Delete Income
 export const deleteIncome = async (req, res) => {
