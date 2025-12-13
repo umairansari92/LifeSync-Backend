@@ -10,8 +10,8 @@ const incomeSchema = new mongoose.Schema(
       default: "other",
     },
     date: { type: Date, required: true },
-    month: { type: Number, required: true }, // 1-12
-    year: { type: Number, required: true },
+    month: { type: Number, required: true, min: 1, max: 12 },
+    year: { type: Number, required: true, min: 1900 },
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     note: { type: String, default: "" },
   },

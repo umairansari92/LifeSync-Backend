@@ -13,8 +13,8 @@ export const addIncome = async (req, res) => {
       return res.status(400).json({ message: "Title, amount, month, and year are required" });
     }
 
-    // Agar user ne date bheji hai to use karo, warna month/year se bana lo
-    const finalDate = date ? new Date(date) : makeDate(month, year);
+    // Agar user ne date bheji hai to wahi use karo, warna month/year se bana lo
+    const finalDate = date ? new Date(date) : new Date(year, month - 1, 1);
 
     const income = await Income.create({
       title,
@@ -32,6 +32,7 @@ export const addIncome = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 // Get all incomes
@@ -89,11 +90,9 @@ export const updateIncome = async (req, res) => {
 
     Object.assign(income, req.body);
 
-    // Agar date bheji hai to use karo, warna month/year se bana lo
+    // Agar date explicitly bheji gayi hai to wahi set karo
     if (req.body.date) {
       income.date = new Date(req.body.date);
-    } else if (req.body.month && req.body.year) {
-      income.date = makeDate(req.body.month, req.body.year);
     }
 
     await income.save();
@@ -102,6 +101,7 @@ export const updateIncome = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // Delete Income
 export const deleteIncome = async (req, res) => {
