@@ -8,7 +8,7 @@ export const addIncome = async (req, res) => {
   try {
     const { title, amount, source, month, year, note } = req.body;
 
-    if (!title || !amount || !month || !year) {
+    if (!title || !amount || !Date() || !month || !year) {
       return res.status(400).json({ message: "Title, amount, month, and year are required" });
     }
 
@@ -18,6 +18,7 @@ export const addIncome = async (req, res) => {
       source: source || "other",
       month,
       year,
+      date: makeDate(month, year),
       note: note || "",
       user: req.user.id,
     });
