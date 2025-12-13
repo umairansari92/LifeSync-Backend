@@ -2,16 +2,18 @@ import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
 import {
   addIncome,
+  deleteIncome,
   getIncomes,
   updateIncome,
-  deleteIncome,
+  
 } from "../controllers/incomeController.js";
+import { generalLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-router.post("/", protect, addIncome);
-router.get("/", protect, getIncomes);
-router.put("/:id", protect, updateIncome);
-router.delete("/:id", protect, deleteIncome);
+router.post("/", protect, generalLimiter, addIncome);
+router.get("/", protect, generalLimiter, getIncomes);
+router.put("/:id", protect, generalLimiter, updateIncome);
+router.delete("/:id", protect, generalLimiter, deleteIncome);
 
 export default router;

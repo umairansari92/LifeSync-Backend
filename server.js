@@ -66,6 +66,17 @@ app.use("/api/tasbeeh", tasbeehRoutes);
 // Special Expense Routes
 app.use("/api/special-expense", specialExpenseRoutes);
 
+
+// Income & Finance Routes
+
+// Income & Finance Routes
+import incomeRoutes from "./routes/incomeRoutes.js";
+import financeRoutes from "./routes/financeRoutes.js";
+
+app.use("/api/income", incomeRoutes);
+app.use("/api/finance", financeRoutes);
+
+
 // Weather API Routes
 
 import weatherRoutes from "./routes/weatherRoutes.js";
