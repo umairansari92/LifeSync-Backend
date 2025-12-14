@@ -42,12 +42,7 @@ export const getIncomes = async (req, res) => {
     const incomes = await Income.find({ user: req.user.id })
       .sort({ year: -1, month: -1 });
 
-    const formatted = incomes.map(i => ({
-      ...i.toObject(),
-      date: makeDate(i.month, i.year),
-    }));
-
-    res.json(formatted);
+    res.json(incomes);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -67,6 +62,7 @@ export const getMonthlyIncome = async (req, res) => {
       month: Number(month),
       year: Number(year),
     });
+     res.json(incomes);
 
     const formatted = incomes.map(i => ({
       ...i.toObject(),
