@@ -18,19 +18,18 @@ export const markNamaz = async (req, res) => {
 
     const modelPrayer = prayerMap[prayer] || prayer;
 
-    // Convert string date to Date object for query
-    const queryDate = new Date(date);
-    queryDate.setHours(0, 0, 0, 0);
+    // Use date as string (YYYY-MM-DD) - consistent with model
+    const dateString = date; // Already in YYYY-MM-DD format
 
     let namaz = await Namaz.findOne({
       user: req.user.id,
-      date: queryDate,
+      date: dateString,
     });
 
     if (!namaz) {
       namaz = await Namaz.create({
         user: req.user.id,
-        date: queryDate,
+        date: dateString,
         prayers: {
           fajr: false,
           zuhr: false,
@@ -57,15 +56,18 @@ export const markNamaz = async (req, res) => {
 // Mark multiple prayers
 export const markMultiplePrayers = async (req, res) => {
   try {
-    const { date } = req.params;
+    const { date } = req.params; // YYYY-MM-DD
     const { prayers } = req.body; // { fajr: false, zuhr: false, ... }
 
-    let namaz = await Namaz.findOne({ user: req.user.id, date });
+    // Use date as string (YYYY-MM-DD) - consistent with model
+    const dateString = date; // Already in YYYY-MM-DD format
+
+    let namaz = await Namaz.findOne({ user: req.user.id, date: dateString });
 
     if (!namaz) {
       namaz = await Namaz.create({
         user: req.user.id,
-        date,
+        date: dateString,
         prayers: {
           fajr: false,
           zuhr: false,
@@ -102,12 +104,14 @@ export const markMultiplePrayers = async (req, res) => {
 // Get today's Namaz
 export const getTodayNamaz = async (req, res) => {
   try {
+    // Get today's date in YYYY-MM-DD format (consistent with model)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayString = today.toISOString().split("T")[0]; // YYYY-MM-DD
 
     let namaz = await Namaz.findOne({
       user: req.user.id,
-      date: today,
+      date: todayString,
     });
 
     if (namaz) {
@@ -116,7 +120,7 @@ export const getTodayNamaz = async (req, res) => {
       // ✅ AUTO-CREATE new entry for today with all false
       namaz = await Namaz.create({
         user: req.user.id,
-        date: today,
+        date: todayString,
         prayers: {
           fajr: false,
           zuhr: false,
@@ -142,13 +146,16 @@ export const autoSaveMissedPrayers = async (req, res) => {
       yesterday.setDate(yesterday.getDate() - 1);
       yesterday.setHours(0, 0, 0, 0);
 
+      // Convert to YYYY-MM-DD format
+      const yesterdayString = yesterday.toISOString().split("T")[0];
+      
       // Check if yesterday's entry exists
-      let yesterdayNamaz = await Namaz.findOne({ date: yesterday });
+      let yesterdayNamaz = await Namaz.findOne({ date: yesterdayString });
 
       if (!yesterdayNamaz) {
         await Namaz.create({
           user: null, // ya loop kar ke saare users ke liye save kar sakte ho
-          date: yesterday,
+          date: yesterdayString,
           prayers: {
             fajr: false,
             zuhr: false,
@@ -163,18 +170,19 @@ export const autoSaveMissedPrayers = async (req, res) => {
         console.log("Yesterday's entry already exists");
       }
 
-      // Optionally reset today’s prayers for all users
+      // Optionally reset today's prayers for all users
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayString = today.toISOString().split("T")[0]; // YYYY-MM-DD
 
       // Loop through all users (agar multi-user system hai)
       const users = await Namaz.distinct("user");
       for (let userId of users) {
-        let todayNamaz = await Namaz.findOne({ user: userId, date: today });
+        let todayNamaz = await Namaz.findOne({ user: userId, date: todayString });
         if (!todayNamaz) {
           await Namaz.create({
             user: userId,
-            date: today,
+            date: todayString,
             prayers: {
               fajr: false,
               zuhr: false,
@@ -198,10 +206,12 @@ export const getNamazHistory = async (req, res) => {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days + 1);
     startDate.setHours(0, 0, 0, 0);
+    const startDateString = startDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
+    // Since date is stored as String in YYYY-MM-DD format, we can use string comparison
     const history = await Namaz.find({
       user: req.user.id,
-      date: { $gte: startDate },
+      date: { $gte: startDateString }, // String comparison works for YYYY-MM-DD format
     }).sort({ date: -1 });
 
     // Format response for frontend
