@@ -1,7 +1,6 @@
 import Income from "../models/incomeModel.js";
 
 // helper: create date from month/year
-// helper: create date from month/year
 const makeDate = (month, year) => new Date(year, month - 1, 1);
 
 // Add Income
