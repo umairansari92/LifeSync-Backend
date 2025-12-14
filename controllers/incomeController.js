@@ -40,7 +40,7 @@ export const addIncome = async (req, res) => {
 export const getIncomes = async (req, res) => {
   try {
     const incomes = await Income.find({ user: req.user.id })
-      .sort({ year: -1, month: -1 });
+      .sort({ date: -1 });
 
     res.json(incomes);
   } catch (error) {
@@ -48,32 +48,24 @@ export const getIncomes = async (req, res) => {
   }
 };
 
+
 // Get monthly income
 export const getMonthlyIncome = async (req, res) => {
   try {
     const { month, year } = req.query;
 
-    if (!month || !year) {
-      return res.status(400).json({ message: "Month and year are required" });
-    }
-
     const incomes = await Income.find({
       user: req.user.id,
       month: Number(month),
       year: Number(year),
-    });
-     res.json(incomes);
+    }).sort({ date: -1 });
 
-    const formatted = incomes.map(i => ({
-      ...i.toObject(),
-      date: makeDate(i.month, i.year),
-    }));
-
-    res.json(formatted);
+    res.json(incomes);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Update Income
 export const updateIncome = async (req, res) => {
