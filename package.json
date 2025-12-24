@@ -13,6 +13,7 @@
   "description": "",
   "dependencies": {
     "@sendgrid/mail": "^8.1.6",
+    "adhan": "^4.4.3",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",
     "canvas": "^3.2.0",

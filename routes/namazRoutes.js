@@ -3,7 +3,6 @@ import {
   markNamaz,
   getNamazHistory,
   getTodayNamaz,
-  autoSaveMissedPrayers,
   markMultiplePrayers,
 } from "../controllers/namazController.js";
 import { protect } from "../middleware/authMiddleware.js";
@@ -11,19 +10,22 @@ import { generalLimiter } from "../middleware/rateLimiter.js";
 
 const router = express.Router();
 
-// Mark a prayer
+// Get today's prayers (Timings + Hijri + Offered Status)
+// Frontend call: /api/namaz/today?lat=24.8&lng=67.0&hijriOffset=0
+router.get("/today", protect, generalLimiter, getTodayNamaz);
+
+// Mark a single prayer
 router.put("/:date/mark", protect, generalLimiter, markNamaz);
 
 // Mark multiple prayers
-router.put("/:date/mark-multiple", protect, generalLimiter, markMultiplePrayers);
+router.put(
+  "/:date/mark-multiple",
+  protect,
+  generalLimiter,
+  markMultiplePrayers
+);
 
-// Get today's prayers
-router.get("/today", protect, generalLimiter, getTodayNamaz);
-
-// Get history (7 or 30 days)
+// Get history (Last 7 or 30 days)
 router.get("/history", protect, generalLimiter, getNamazHistory);
-
-// routes/namaz.js
-router.get("/auto-save-missed", protect, generalLimiter, autoSaveMissedPrayers);
 
 export default router;
