@@ -25,7 +25,7 @@ const safeDate = (date) => {
   return isNaN(d) ? "N/A" : d.toLocaleDateString();
 };
 
-// Safe time formatter
+// Safe time formatter (Matches your NamazPage format)
 const safeTime = (date) => {
   if (!date) return "N/A";
   const d = new Date(date);
@@ -40,37 +40,42 @@ const safeTime = (date) => {
 
 export const getDashboardData = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  const { lat, lng } = req.query; // Get location from frontend
 
   const now = new Date();
-
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
   const todayStart = new Date(now.setHours(0, 0, 0, 0));
   const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
 
-  // ================= NAMAZ LOGIC (SAFE) =================
+  // ================= NAMAZ LOGIC (DYNAMIC & SYNCED) =================
   let nextPrayerLabel = "Not available";
 
   try {
-    const coords = new Coordinates(24.8607, 67.0011);
+    const latitude = parseFloat(lat) || 24.8607; // Default: Karachi
+    const longitude = parseFloat(lng) || 67.0011;
+    const coords = new Coordinates(latitude, longitude);
+
     const params = CalculationMethod.Karachi();
-    const prayerTimes = new PrayerTimes(coords, new Date(), params);
+    params.madhab = "hanafi"; // Standard for your region
 
-    const nextPrayerKey = prayerTimes.nextPrayer();
+    let prayerTimes = new PrayerTimes(coords, new Date(), params);
+    let nextPrayerKey = prayerTimes.nextPrayer();
 
-    if (nextPrayerKey) {
+    // Handling "none" (if all prayers for today are done)
+    if (!nextPrayerKey || nextPrayerKey === "none") {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowTimes = new PrayerTimes(coords, tomorrow, params);
+      nextPrayerLabel = `Fajr (${safeTime(tomorrowTimes.fajr)})`;
+    } else {
       const prayerDate = prayerTimes.timeForPrayer(nextPrayerKey);
-
-      if (prayerDate) {
-        const prayerName =
-          nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
-
-        nextPrayerLabel = `${prayerName} (${safeTime(prayerDate)})`;
-      }
+      const prayerName =
+        nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
+      nextPrayerLabel = `${prayerName} (${safeTime(prayerDate)})`;
     }
   } catch (err) {
-    console.error("Namaz calculation failed:", err.message);
+    console.error("Dashboard Namaz calculation failed:", err.message);
   }
 
   // ================= DATABASE QUERIES =================
