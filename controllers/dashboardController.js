@@ -5,9 +5,9 @@ import User from "../models/user.js";
 import Task from "../models/taskModel.js";
 import Expense from "../models/expenseModel.js";
 import asyncHandler from "express-async-handler";
-import { Coordinates, CalculationMethod, PrayerTimes } from "adhan"; // 1. Import Adhan
+import { Coordinates, CalculationMethod, PrayerTimes } from "adhan";
 
-// Helper function to check for user's birthday
+// Birthday helper
 const checkBirthday = (dob) => {
   if (!dob) return false;
   const today = new Date();
@@ -18,35 +18,62 @@ const checkBirthday = (dob) => {
   );
 };
 
+// Safe date formatter
+const safeDate = (date) => {
+  if (!date) return "N/A";
+  const d = new Date(date);
+  return isNaN(d) ? "N/A" : d.toLocaleDateString();
+};
+
+// Safe time formatter
+const safeTime = (date) => {
+  if (!date) return "N/A";
+  const d = new Date(date);
+  return isNaN(d)
+    ? "N/A"
+    : d.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+};
+
 export const getDashboardData = asyncHandler(async (req, res) => {
   const userId = req.user._id;
 
   const now = new Date();
+
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 
-  const todayStart = new Date(new Date().setHours(0, 0, 0, 0));
+  const todayStart = new Date(now.setHours(0, 0, 0, 0));
   const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
 
-  // --- 2. Adhan Logic for Prayer Times ---
-  // Karachi Coordinates (Inhe aap user profile se dynamic bhi bana sakte hain)
-  const coords = new Coordinates(24.8607, 67.0011);
-  const params = CalculationMethod.Karachi();
-  const prayerTimes = new PrayerTimes(coords, now, params);
+  // ================= NAMAZ LOGIC (SAFE) =================
+  let nextPrayerLabel = "Not available";
 
-  // Format Next Prayer String
-  const nextPrayerKey = prayerTimes.nextPrayer();
-  const nextPrayerName =
-    nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
-  const nextPrayerTime = prayerTimes
-    .timeForPrayer(nextPrayerKey)
-    .toLocaleTimeString("en-US", {
-      hour: "numeric",
-      minute: "2-digit",
-      hour12: true,
-    });
+  try {
+    const coords = new Coordinates(24.8607, 67.0011);
+    const params = CalculationMethod.Karachi();
+    const prayerTimes = new PrayerTimes(coords, new Date(), params);
 
-  // --- Execute all data fetching promises in parallel ---
+    const nextPrayerKey = prayerTimes.nextPrayer();
+
+    if (nextPrayerKey) {
+      const prayerDate = prayerTimes.timeForPrayer(nextPrayerKey);
+
+      if (prayerDate) {
+        const prayerName =
+          nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
+
+        nextPrayerLabel = `${prayerName} (${safeTime(prayerDate)})`;
+      }
+    }
+  } catch (err) {
+    console.error("Namaz calculation failed:", err.message);
+  }
+
+  // ================= DATABASE QUERIES =================
   const [
     userProfile,
     taskSummary,
@@ -90,12 +117,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
           date: { $gte: startOfMonth, $lte: endOfMonth },
         },
       },
-      {
-        $group: {
-          _id: null,
-          totalMonthlySpending: { $sum: "$amount" },
-        },
-      },
+      { $group: { _id: null, totalMonthlySpending: { $sum: "$amount" } } },
     ]),
 
     Expense.aggregate([
@@ -105,12 +127,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
           date: { $gte: todayStart, $lte: todayEnd },
         },
       },
-      {
-        $group: {
-          _id: null,
-          totalTodaySpending: { $sum: "$amount" },
-        },
-      },
+      { $group: { _id: null, totalTodaySpending: { $sum: "$amount" } } },
     ]),
 
     Expense.find({ user: userId })
@@ -134,7 +151,10 @@ export const getDashboardData = asyncHandler(async (req, res) => {
 
   const tasks = taskSummary[0] || { totalTasks: 0, completedTasks: 0 };
   const completedPercentage =
-    tasks.totalTasks > 0 ? (tasks.completedTasks / tasks.totalTasks) * 100 : 0;
+    tasks.totalTasks > 0
+      ? Math.round((tasks.completedTasks / tasks.totalTasks) * 100)
+      : 0;
+
   const isBirthdayToday = checkBirthday(userProfile?.dob);
 
   res.status(200).json({
@@ -142,7 +162,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       firstname: userProfile?.firstname || "User",
       lastname: userProfile?.lastname || "",
       email: userProfile?.email || "N/A",
-      imageUrl: userProfile?.profileImageUrl,
+      imageUrl: userProfile?.profileImageUrl || null,
       isBirthday: isBirthdayToday,
       age:
         isBirthdayToday && userProfile?.dob
@@ -156,32 +176,30 @@ export const getDashboardData = asyncHandler(async (req, res) => {
           2
         ),
         monthlyRemaining: "750.00",
-        nextDuePayment: "2025-12-05",
         latestEntries: latestExpenses.map((exp) => ({
-          title: exp.description,
-          value: `PKR ${exp.amount.toFixed(2)}`,
-          date: exp.date.toLocaleDateString(),
+          title: exp.description || "Expense",
+          value: `PKR ${Number(exp.amount || 0).toFixed(2)}`,
+          date: safeDate(exp.date),
         })),
       },
       planner: {
         totalTasks: tasks.totalTasks,
-        completedPercentage: completedPercentage.toFixed(0),
-        nextEvent: "Team Meeting at 10 AM",
+        completedPercentage,
         latestEntries: latestTasks.map((task) => ({
-          title: task.title,
+          title: task.title || "Task",
           value: task.isCompleted ? "Completed" : "Pending",
-          date: task.dueDate ? task.dueDate.toLocaleDateString() : "N/A",
+          date: safeDate(task.dueDate),
         })),
       },
       notes: {
         totalNotes: noteSummary[0]?.totalNotes || 0,
         pinnedNotes: noteSummary[0]?.pinnedNotes || 0,
         latestEntries: latestNotes.map((note) => ({
-          title: note.title,
+          title: note.title || "Note",
           value: note.content
             ? note.content.substring(0, 30) + "..."
             : "No content",
-          date: note.createdAt.toLocaleDateString(),
+          date: safeDate(note.createdAt),
         })),
       },
       habits: {
@@ -191,8 +209,7 @@ export const getDashboardData = asyncHandler(async (req, res) => {
       },
       namaz: {
         doneToday: 4,
-        // 3. Dynamic Adhan Data
-        nextPrayer: `${nextPrayerName} (${nextPrayerTime})`,
+        nextPrayer: nextPrayerLabel,
         onTimeRate: "95%",
       },
     },
