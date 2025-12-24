@@ -49,34 +49,51 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
 
   // ================= NAMAZ LOGIC (DYNAMIC & SYNCED) =================
-  let nextPrayerLabel = "Not available";
+let nextPrayerLabel = "Not available";
 
-  try {
-    const latitude = parseFloat(lat) || 24.8607; // Default: Karachi
-    const longitude = parseFloat(lng) || 67.0011;
-    const coords = new Coordinates(latitude, longitude);
+try {
+  const { lat, lng, tz } = req.query; // Timezone (tz) bhi query se le sakte hain
+  const latitude = parseFloat(lat) || 24.8607;
+  const longitude = parseFloat(lng) || 67.0011;
+  const coords = new Coordinates(latitude, longitude);
+  
+  const params = CalculationMethod.Karachi();
+  params.madhab = "hanafi";
 
-    const params = CalculationMethod.Karachi();
-    params.madhab = "hanafi"; // Standard for your region
-
-    let prayerTimes = new PrayerTimes(coords, new Date(), params);
-    let nextPrayerKey = prayerTimes.nextPrayer();
-
-    // Handling "none" (if all prayers for today are done)
-    if (!nextPrayerKey || nextPrayerKey === "none") {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowTimes = new PrayerTimes(coords, tomorrow, params);
-      nextPrayerLabel = `Fajr (${safeTime(tomorrowTimes.fajr)})`;
-    } else {
-      const prayerDate = prayerTimes.timeForPrayer(nextPrayerKey);
-      const prayerName =
-        nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
-      nextPrayerLabel = `${prayerName} (${safeTime(prayerDate)})`;
+  // Helper function (Same as your NamazController)
+  const formatTime = (time) => {
+    const options = {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: tz || "Asia/Karachi",
+    };
+    try {
+      return time.toLocaleTimeString("en-US", options);
+    } catch (e) {
+      return time.toLocaleTimeString("en-US", { ...options, timeZone: "Asia/Karachi" });
     }
-  } catch (err) {
-    console.error("Dashboard Namaz calculation failed:", err.message);
+  };
+
+  // Calculation ke liye current time (PST mein convert karne ki zaroorat nahi, 
+  // adhan library internally handle karti hai agar Date object sahi ho)
+  const prayerTimes = new PrayerTimes(coords, new Date(), params);
+  let nextPrayerKey = prayerTimes.nextPrayer();
+
+  if (!nextPrayerKey || nextPrayerKey === "none") {
+    // Agar aaj ki namazein khatam, toh kal ki Fajr
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowTimes = new PrayerTimes(coords, tomorrow, params);
+    nextPrayerLabel = `Fajr (${formatTime(tomorrowTimes.fajr)})`;
+  } else {
+    const prayerDate = prayerTimes.timeForPrayer(nextPrayerKey);
+    const prayerName = nextPrayerKey.charAt(0).toUpperCase() + nextPrayerKey.slice(1);
+    nextPrayerLabel = `${prayerName} (${formatTime(prayerDate)})`;
   }
+} catch (err) {
+  console.error("Dashboard Namaz calculation failed:", err.message);
+}
 
   // ================= DATABASE QUERIES =================
   const [
