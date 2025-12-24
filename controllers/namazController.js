@@ -3,15 +3,19 @@ import cron from "node-cron";
 import { Coordinates, CalculationMethod, PrayerTimes } from "adhan";
 
 // --- HELPER: Local Calculation (Coordinates + Hijri Offset) ---
-const getLocalPrayerData = (lat, lng, tz, hijriOffset = 0) => {
+// Note: order is (lat, lng, hijriOffset, tz) to match the call below
+const getLocalPrayerData = (lat, lng, hijriOffset = 0, tz = "Asia/Karachi") => {
   // 1. Coordinates setup
-  const latitude = parseFloat(lat) || 24.8607; // Default Karachi
+  const latitude = parseFloat(lat) || 24.8607;
   const longitude = parseFloat(lng) || 67.0011;
   const coords = new Coordinates(latitude, longitude);
 
   const date = new Date();
-  // Pakistan/India ke liye Karachi method best hai
+
+  // Method and Madhab setup
   const params = CalculationMethod.Karachi();
+  params.madhab = "hanafi"; // Pakistan/India ke liye accurate Asr timing
+
   const prayerTimes = new PrayerTimes(coords, date, params);
 
   // 2. Hijri Date with Manual Offset Logic
@@ -25,13 +29,24 @@ const getLocalPrayerData = (lat, lng, tz, hijriOffset = 0) => {
   }).format(adjustedDate);
 
   // 3. Time Formatting Helper
- const formatTime = (time) =>
-    time.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-      timeZone: tz || "Asia/Karachi", // Har area ke liye dynamic
-    });
+  const formatTime = (time) => {
+    try {
+      return time.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: tz || "Asia/Karachi",
+      });
+    } catch (e) {
+      // Agar invalid timezone aaye toh Karachi fallback use karein taake crash na ho
+      return time.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Karachi",
+      });
+    }
+  };
 
   return {
     hijriDate,
@@ -49,13 +64,14 @@ const getLocalPrayerData = (lat, lng, tz, hijriOffset = 0) => {
 // --- GET TODAY'S DATA (Main Endpoint) ---
 export const getTodayNamaz = async (req, res) => {
   try {
-    const { lat, lng, hijriOffset = 0 } = req.query;
+    // Destructure tz from query
+    const { lat, lng, hijriOffset = 0, tz } = req.query;
 
     const today = new Date();
     const todayString = today.toISOString().split("T")[0];
 
-    // Local calculations (No external API needed)
-    const extraData = getLocalPrayerData(lat, lng, hijriOffset);
+    // FIX: Pass all parameters in correct order to helper
+    const extraData = getLocalPrayerData(lat, lng, hijriOffset, tz);
 
     let namaz = await Namaz.findOne({ user: req.user.id, date: todayString });
 
@@ -79,14 +95,14 @@ export const getTodayNamaz = async (req, res) => {
     });
   } catch (error) {
     console.error("Get Today Namaz Error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ message: "Server error", detail: error.message });
   }
 };
 
 // --- MARK SINGLE PRAYER ---
 export const markNamaz = async (req, res) => {
   try {
-    const { date } = req.params; // YYYY-MM-DD
+    const { date } = req.params;
     const { prayer, status } = req.body;
 
     const prayerMap = {
@@ -183,7 +199,7 @@ export const getNamazHistory = async (req, res) => {
   }
 };
 
-// --- CRON JOB: Auto-save entries for all users at midnight ---
+// --- CRON JOB ---
 export const autoSaveMissedPrayers = () => {
   cron.schedule("0 0 * * *", async () => {
     try {
