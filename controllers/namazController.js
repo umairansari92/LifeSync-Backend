@@ -3,7 +3,7 @@ import cron from "node-cron";
 import { Coordinates, CalculationMethod, PrayerTimes } from "adhan";
 
 // --- HELPER: Local Calculation (Coordinates + Hijri Offset) ---
-const getLocalPrayerData = (lat, lng, hijriOffset = 0) => {
+const getLocalPrayerData = (lat, lng, tz, hijriOffset = 0) => {
   // 1. Coordinates setup
   const latitude = parseFloat(lat) || 24.8607; // Default Karachi
   const longitude = parseFloat(lng) || 67.0011;
@@ -25,11 +25,12 @@ const getLocalPrayerData = (lat, lng, hijriOffset = 0) => {
   }).format(adjustedDate);
 
   // 3. Time Formatting Helper
-  const formatTime = (time) =>
+ const formatTime = (time) =>
     time.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: tz || "Asia/Karachi", // Har area ke liye dynamic
     });
 
   return {
