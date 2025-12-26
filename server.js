@@ -13,7 +13,8 @@ import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
-
+import hijriRoutes from "./routes/hijriRoutes.js";
+import weatherRoutes from "./routes/weatherRoutes.js";
 dotenv.config();
 connectDB();
 const app = express();
@@ -57,6 +58,10 @@ app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/namaz", namazRoutes);
 
+// Hijri Date Routes
+
+app.use("/api", hijriRoutes);
+
 // Quran API Routes
 app.use("/api/quran", quranRoutes);
 
@@ -66,7 +71,6 @@ app.use("/api/tasbeeh", tasbeehRoutes);
 // Special Expense Routes
 app.use("/api/special-expense", specialExpenseRoutes);
 
-
 // Income & Finance Routes
 
 // Income & Finance Routes
@@ -75,7 +79,6 @@ import financeRoutes from "./routes/financeRoutes.js";
 
 app.use("/api/income", incomeRoutes);
 app.use("/api/finance", financeRoutes);
-
 
 // Weather API Routes
 
