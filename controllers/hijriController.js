@@ -39,14 +39,10 @@ export const getHijriDate = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error({
-        message: "Error fetching Hijri date"+error.message,
-        error: error.message,
-        status:false
-    });
+    console.error("Error fetching Hijri date:", error.message);
     return res.status(500).json({
       success: false,
-      message: "Internal Server Error",
+      message: "Internal Server Error" + error.message,
     });
   }
 };
