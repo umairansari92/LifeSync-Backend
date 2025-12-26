@@ -1,8 +1,9 @@
 import express from "express";
-import { getHijriDate } from "../controllers/hijriController";
+import { getHijriDate } from "../controllers/hijriController.js"; // note .js extension
+
 const router = express.Router();
 
-// Route Example: /api/hijri?lat=24.86&lng=67.00&adjustment=1
+// /api/hijri?lat=..&lng=..&adjustment=..
 router.get("/hijri", getHijriDate);
 
-module.exports = router;
+export default router;

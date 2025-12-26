@@ -13,7 +13,6 @@ import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
-import hijriRoutes from "./routes/hijriRoutes.js";
 dotenv.config();
 connectDB();
 const app = express();
@@ -58,7 +57,7 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/namaz", namazRoutes);
 
 // Hijri Date Routes
-
+import hijriRoutes from "./routes/hijriRoutes.js";
 app.use("/api", hijriRoutes);
 
 // Quran API Routes
