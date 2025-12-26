@@ -14,7 +14,6 @@ import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
 import hijriRoutes from "./routes/hijriRoutes.js";
-import weatherRoutes from "./routes/weatherRoutes.js";
 dotenv.config();
 connectDB();
 const app = express();
