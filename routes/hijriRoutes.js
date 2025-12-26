@@ -1,5 +1,5 @@
 import express from "express";
-import { getHijriDate } from "../controllers/hijriController.js"; // note .js extension
+import getHijriDate from "../controllers/hijriController";
 
 const router = express.Router();
 

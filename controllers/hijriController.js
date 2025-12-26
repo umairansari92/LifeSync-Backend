@@ -75,4 +75,4 @@ const getHijriDate = async (req, res) => {
     }
 };
 
-module.exports = { getHijriDate };
+export default getHijriDate;
