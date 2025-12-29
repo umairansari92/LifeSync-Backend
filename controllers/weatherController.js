@@ -17,8 +17,8 @@ export const getWeatherData = asyncHandler(async (req, res) => {
         return res.status(500).json({ message: "Weather API key not configured." });
     }
 
-    // Using OpenWeatherMap URL structure
-    const weatherURL = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+    // Using WeatherAPI URL structure
+    const weatherURL = `http://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${lat},${lon}&aqi=yes`;
 
     try {
         const { data } = await axios.get(weatherURL);
