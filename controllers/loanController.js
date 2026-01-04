@@ -1,4 +1,5 @@
 import Loan from "../models/loanModel.js";
+import mongoose from "mongoose";
 
 // ✅ 1. Naya Loan Contact banaye
 export const createLoanContact = async (req, res) => {
