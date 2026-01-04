@@ -24,7 +24,7 @@ const allowedOrigins = [
   process.env.CLIENT_URL,
   "https://life-sync-beryl.vercel.app",
   "http://localhost:5173",
-  "https://life-sync-frontend.vercel.app"
+  "https://lifesynchub.vercel.app/",
 ];
 
 const corsOptions = {
