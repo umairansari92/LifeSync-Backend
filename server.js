@@ -13,13 +13,29 @@ import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
+import loanRoutes from "./routes/loanRoutes.js";
+
 dotenv.config();
 connectDB();
 const app = express();
 app.set("trust proxy", 1);
+
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  "https://life-sync-beryl.vercel.app",
+  "http://localhost:5173",
+  "https://life-sync-frontend.vercel.app"
+];
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -80,6 +96,9 @@ app.use("/api/income", incomeRoutes);
 app.use("/api/finance", financeRoutes);
 
 // Weather API Routes
+
+// Loan Routes
+app.use("/api/loans", loanRoutes);
 
 import weatherRoutes from "./routes/weatherRoutes.js";
 app.use("/api/weather", weatherRoutes);
