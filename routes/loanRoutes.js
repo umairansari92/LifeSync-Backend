@@ -9,7 +9,7 @@ import {
   settleContact,
   generateWhatsAppLink,
   getContactStats
-} from '../controllers/contactController.js';
+} from '../controllers/loanController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
