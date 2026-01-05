@@ -3,31 +3,66 @@ import Contact from "../models/Contact.js";
 import mongoose from "mongoose";
 
 // Create New Contact
+// controllers/contactController.js (patch for createContact)
 export const createContact = async (req, res) => {
   try {
-    const { name, phone, email, relationship } = req.body;
+    // Accept both frontend keys: personName / name
+    const rawName = req.body.name ?? req.body.personName ?? "";
+    const name = rawName.toString().trim().replace(/^\\+/, ""); // remove leading backslashes
+    const phone = (req.body.phone ?? req.body.phoneNumber ?? "").toString().trim();
+    const email = (req.body.email ?? "").toString().trim();
+    const relationship = req.body.relationship ?? "friend";
 
-    if (!name || name.trim() === "") {
+    if (!name) {
       return res.status(400).json({ message: "Name is required" });
     }
 
+    // If frontend sent transactions, map/validate them minimally
+    const incomingTxns = Array.isArray(req.body.transactions) ? req.body.transactions : [];
+
     const contact = new Contact({
       userId: req.user.id,
-      name: name.trim(),
-      phone: phone?.trim() || "",
-      relationship: relationship || "friend",
-      transactions: [],
+      name,
+      phone,
+      email,
+      relationship,
+      transactions: [] // start empty, we'll push valid ones below
+    });
+
+    // Push incoming transactions if any (basic validation)
+    incomingTxns.forEach((t) => {
+      try {
+        const type = (t.type || "").toString();
+        const direction = (t.direction || "").toString();
+        const amount = Number(t.amount || 0);
+        const note = (t.note ?? t.description ?? t.note ?? "").toString();
+
+        // Only push if required fields look valid
+        if (["credit", "return"].includes(type) && ["borrowed", "lent"].includes(direction) && !isNaN(amount) && amount >= 0) {
+          contact.transactions.push({
+            type,
+            direction,
+            amount,
+            note,
+            date: t.date ? new Date(t.date) : new Date()
+          });
+        } else {
+          // skip invalid txn (or collect for reporting)
+        }
+      } catch (e) {
+        // ignore single txn errors
+      }
     });
 
     await contact.save();
 
-    // Return as loan for frontend consistency
-    res.status(201).json({ message: "Contact created", loan: contact });
+    return res.status(201).json({ message: "Contact created", loan: contact });
   } catch (error) {
     console.error("Create contact error:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // Get All Contacts
 export const getAllContacts = async (req, res) => {
