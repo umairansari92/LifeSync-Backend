@@ -1,6 +1,6 @@
 // controllers/contactController.js
 import mongoose from "mongoose";
-import Contact from "../models/loanModel";
+import Contact from "../models/loanModel.js";
 
 // Create New Contact
 // controllers/contactController.js (patch for createContact)
@@ -54,7 +54,7 @@ export const createContact = async (req, res) => {
       }
     });
 
-    await Contact.save();
+    await contact.save();
 
     return res.status(201).json({ message: "Contact created", loan: contact });
   } catch (error) {
