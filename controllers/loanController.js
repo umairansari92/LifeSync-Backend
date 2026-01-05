@@ -1,6 +1,6 @@
 // controllers/contactController.js
+import Contact from "../models/Contact.js";
 import mongoose from "mongoose";
-import Contact from "../models/loanModel.js";
 
 // Create New Contact
 // controllers/contactController.js (patch for createContact)
@@ -198,7 +198,9 @@ export const settleContact = async (req, res) => {
   }
 };
 
-// Delete Contact
+// ======================
+// 5. Delete Contact
+// ======================
 export const deleteContact = async (req, res) => {
   try {
     const { id } = req.params;
@@ -212,6 +214,29 @@ export const deleteContact = async (req, res) => {
     res.status(200).json({ message: "Contact deleted successfully" });
   } catch (error) {
     console.error("Delete contact error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// ======================
+// 5. Update Contact
+// ======================
+export const updateContact = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, phone } = req.body;
+
+    const contact = await Contact.findOneAndUpdate(
+      { _id: id, userId: req.user.id },
+      { name, phone, updatedAt: new Date() },
+      { new: true, runValidators: true }
+    );
+
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+
+    res.status(200).json({ message: "Contact updated", contact });
+  } catch (error) {
+    console.error("Update contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
