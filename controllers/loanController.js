@@ -1,36 +1,31 @@
 import Loan from "../models/loanModel.js";
 import mongoose from "mongoose";
 
-// ✅ 1. Naya Loan Contact banaye
+// CREATE A NEW LOAN CONTACT
 export const createLoanContact = async (req, res) => {
   try {
-    const { personName, phoneNumber, email, relationship, transactions } = req.body;
+    const { personName, phoneNumber, email, relationship } = req.body;
 
-    if (!personName) {
+    // Validation
+    if (!personName || personName.trim() === '') {
       return res.status(400).json({ message: "Person name is required" });
     }
 
-    if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
-      return res.status(400).json({ message: "At least one transaction is required" });
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
-    const newLoan = await Loan.create({
+    const loan = new Loan({
       user: req.user.id,
-      personName,
-      phoneNumber,
-      email,
-      relationship,
-      transactions: transactions.map(t => ({
-        ...t,
-        date: t.date || new Date()
-      }))
+      personName: personName.trim(),
+      phoneNumber: phoneNumber?.trim() || '',
+      email: email?.toLowerCase().trim() || '',
+      relationship: relationship || 'friend',
+      transactions: []
     });
 
-    res.status(201).json({ 
-      message: "Loan contact created successfully", 
-      loan: newLoan 
-    });
-
+    await loan.save();
+    res.status(201).json({ message: "Loan contact created", loan });
   } catch (error) {
     console.error("Create loan contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
@@ -95,20 +90,25 @@ export const getLoanContactById = async (req, res) => {
   }
 };
 
-// ✅ 4. Naya Transaction add kare
+// ADD A TRANSACTION TO A LOAN
 export const addTransaction = async (req, res) => {
   try {
     const { type, amount, description, paymentMethod, date } = req.body;
 
-    if (!type || !amount) {
-      return res.status(400).json({ message: "Type and amount are required" });
+    // Validation
+    if (!type || !['credit', 'debit'].includes(type)) {
+      return res.status(400).json({ message: "Transaction type must be 'credit' or 'debit'" });
     }
 
-    const loan = await Loan.findOne({ 
-      _id: req.params.id, 
-      user: req.user.id 
-    });
+    if (!amount || isNaN(amount) || Number(amount) < 0) {
+      return res.status(400).json({ message: "Amount must be a non-negative number" });
+    }
 
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: "Invalid loan ID" });
+    }
+
+    const loan = await Loan.findOne({ _id: req.params.id, user: req.user.id });
     if (!loan) {
       return res.status(404).json({ message: "Loan contact not found" });
     }
@@ -116,18 +116,16 @@ export const addTransaction = async (req, res) => {
     loan.transactions.push({
       type,
       amount: parseFloat(amount),
-      description: description || '',
-      paymentMethod: paymentMethod || 'cash',
+      description: description?.trim() || '',
+      paymentMethod: ['cash', 'bank', 'easypaisa', 'jazzcash', 'other'].includes(paymentMethod) 
+                      ? paymentMethod 
+                      : 'cash',
       date: date ? new Date(date) : new Date()
     });
 
     await loan.save();
 
-    res.status(200).json({ 
-      message: "Transaction added successfully", 
-      loan 
-    });
-
+    res.status(200).json({ message: "Transaction added successfully", loan });
   } catch (error) {
     console.error("Add transaction error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
