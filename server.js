@@ -13,7 +13,7 @@ import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
-import loanRoutes from "./routes/loanRoutes.js";
+import contactRoutes from './routes/loanRoutes.js';
 
 dotenv.config();
 connectDB();
@@ -97,8 +97,8 @@ app.use("/api/finance", financeRoutes);
 
 // Weather API Routes
 
-// Loan Routes
-app.use("/api/loans", loanRoutes);
+// Contacts API
+app.use('/api/contacts', contactRoutes );
 
 import weatherRoutes from "./routes/weatherRoutes.js";
 app.use("/api/weather", weatherRoutes);

@@ -1,362 +1,324 @@
-import Loan from "../models/loanModel.js";
+import Contact from "../models/Contact.js";
 import mongoose from "mongoose";
 
-// CREATE A NEW LOAN CONTACT
-export const createLoanContact = async (req, res) => {
+// ======================
+// 1. Create New Contact
+// ======================
+export const createContact = async (req, res) => {
   try {
-    const { personName, phoneNumber, email, relationship } = req.body;
+    const { name, phone } = req.body;
 
-    // Validation
-    if (!personName || personName.trim() === '') {
-      return res.status(400).json({ message: "Person name is required" });
+    if (!name || name.trim() === "") {
+      return res.status(400).json({ message: "Name is required" });
     }
 
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ message: "Invalid email format" });
-    }
-
-    const loan = new Loan({
-      user: req.user.id,
-      personName: personName.trim(),
-      phoneNumber: phoneNumber?.trim() || '',
-      email: email?.toLowerCase().trim() || '',
-      relationship: relationship || 'friend',
-      transactions: []
+    const contact = new Contact({
+      userId: req.user.id,
+      name: name.trim(),
+      phone: phone?.trim() || "",
+      transactions: [],
     });
 
-    await loan.save();
-    res.status(201).json({ message: "Loan contact created", loan });
+    await contact.save();
+
+    res.status(201).json({ message: "Contact created", contact });
   } catch (error) {
-    console.error("Create loan contact error:", error);
+    console.error("Create contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 2. Saare Loan Contacts laaye
-export const getAllLoanContacts = async (req, res) => {
+// ======================
+// 2. Get All Contacts
+// ======================
+export const getAllContacts = async (req, res) => {
   try {
-    const { search, status, relationship } = req.query;
-    let query = { user: req.user.id };
+    const { search, status } = req.query;
+    let query = { userId: req.user.id };
 
     if (search) {
-      query.$or = [
-        { personName: { $regex: search, $options: "i" } },
-        { phoneNumber: { $regex: search, $options: "i" } }
-      ];
+      query.name = { $regex: search, $options: "i" };
     }
 
-    if (status === 'settled') {
-      query.isSettled = true;
-    } else if (status === 'pending') {
-      query.isSettled = false;
-      query.netBalance = { $ne: 0 };
+    if (status) {
+      query.balanceType = status; // 'owe', 'owed', 'settled'
     }
 
-    if (relationship) {
-      query.relationship = relationship;
-    }
+    const contacts = await Contact.find(query).sort({ updatedAt: -1 });
 
-    const loans = await Loan.find(query).sort({ lastTransactionDate: -1 });
-
-    res.status(200).json({ 
-      success: true, 
-      count: loans.length, 
-      loans 
-    });
-
+    res.status(200).json({ success: true, count: contacts.length, contacts });
   } catch (error) {
-    console.error("Get all loans error:", error);
+    console.error("Get all contacts error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 3. Single Loan Contact ki details laaye
-export const getLoanContactById = async (req, res) => {
+// ======================
+// 3. Get Contact By ID
+// ======================
+export const getContactById = async (req, res) => {
   try {
-    const loan = await Loan.findOne({ 
-      _id: req.params.id, 
-      user: req.user.id 
-    });
+    const { id } = req.params;
 
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid contact ID" });
     }
 
-    res.status(200).json({ success: true, loan });
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
 
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+
+    res.status(200).json({ success: true, contact });
   } catch (error) {
-    console.error("Get loan by ID error:", error);
+    console.error("Get contact by ID error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ADD A TRANSACTION TO A LOAN
+// ======================
+// 4. Add Transaction
+// ======================
 export const addTransaction = async (req, res) => {
   try {
-    const { type, amount, description, paymentMethod, date } = req.body;
+    const { type, amount, direction, note, date } = req.body;
+    const { id } = req.params;
 
-    // Validation
-    if (!type || !['credit', 'debit'].includes(type)) {
-      return res.status(400).json({ message: "Transaction type must be 'credit' or 'debit'" });
+    if (!type || !["credit", "return"].includes(type)) {
+      return res
+        .status(400)
+        .json({ message: "Transaction type must be 'credit' or 'return'" });
+    }
+
+    if (!direction || !["borrowed", "lent"].includes(direction)) {
+      return res
+        .status(400)
+        .json({
+          message: "Transaction direction must be 'borrowed' or 'lent'",
+        });
     }
 
     if (!amount || isNaN(amount) || Number(amount) < 0) {
-      return res.status(400).json({ message: "Amount must be a non-negative number" });
+      return res.status(400).json({ message: "Amount must be non-negative" });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: "Invalid loan ID" });
-    }
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    const loan = await Loan.findOne({ _id: req.params.id, user: req.user.id });
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
-    }
-
-    loan.transactions.push({
+    contact.transactions.push({
       type,
       amount: parseFloat(amount),
-      description: description?.trim() || '',
-      paymentMethod: ['cash', 'bank', 'easypaisa', 'jazzcash', 'other'].includes(paymentMethod) 
-                      ? paymentMethod 
-                      : 'cash',
-      date: date ? new Date(date) : new Date()
+      direction,
+      note: note?.trim() || "",
+      date: date ? new Date(date) : new Date(),
     });
 
-    await loan.save();
+    await contact.save();
 
-    res.status(200).json({ message: "Transaction added successfully", loan });
+    res
+      .status(200)
+      .json({ message: "Transaction added successfully", contact });
   } catch (error) {
     console.error("Add transaction error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 5. Loan Contact update kare
-export const updateLoanContact = async (req, res) => {
+// ======================
+// 5. Update Contact
+// ======================
+export const updateContact = async (req, res) => {
   try {
-    const { personName, phoneNumber, email, relationship } = req.body;
+    const { id } = req.params;
+    const { name, phone } = req.body;
 
-    const loan = await Loan.findOneAndUpdate(
-      { _id: req.params.id, user: req.user.id },
-      { 
-        personName, 
-        phoneNumber, 
-        email, 
-        relationship,
-        updatedAt: new Date()
-      },
+    const contact = await Contact.findOneAndUpdate(
+      { _id: id, userId: req.user.id },
+      { name, phone, updatedAt: new Date() },
       { new: true, runValidators: true }
     );
 
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
-    }
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    res.status(200).json({ 
-      message: "Contact updated successfully", 
-      loan 
-    });
-
+    res.status(200).json({ message: "Contact updated", contact });
   } catch (error) {
-    console.error("Update loan contact error:", error);
+    console.error("Update contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 6. Loan Contact delete kare
-export const deleteLoanContact = async (req, res) => {
+// ======================
+// 6. Delete Contact
+// ======================
+export const deleteContact = async (req, res) => {
   try {
-    const loan = await Loan.findOneAndDelete({ 
-      _id: req.params.id, 
-      user: req.user.id 
+    const { id } = req.params;
+
+    const contact = await Contact.findOneAndDelete({
+      _id: id,
+      userId: req.user.id,
     });
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
-    }
-
-    res.status(200).json({ 
-      message: "Loan contact deleted successfully" 
-    });
-
+    res.status(200).json({ message: "Contact deleted successfully" });
   } catch (error) {
-    console.error("Delete loan contact error:", error);
+    console.error("Delete contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 7. Settle kare (poore balance ko zero kare)
-export const settleLoan = async (req, res) => {
+// ======================
+// 7. Settle Contact (Balance = 0)
+// ======================
+export const settleContact = async (req, res) => {
   try {
-    const loan = await Loan.findOne({ 
-      _id: req.params.id, 
-      user: req.user.id 
-    });
+    const { id } = req.params;
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
 
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
-    }
-
-    if (loan.netBalance === 0) {
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+    if (contact.balanceType === "settled") {
       return res.status(400).json({ message: "Already settled" });
     }
 
-    const settlementType = loan.netBalance > 0 ? 'debit' : 'credit';
-    const settlementAmount = Math.abs(loan.netBalance);
+    // Create full settlement transaction
+    const settlementAmount = contact.currentBalance;
+    let settlementDirection =
+      contact.balanceType === "owe" ? "borrowed" : "lent";
+    let settlementType = "return";
 
-    loan.transactions.push({
+    contact.transactions.push({
       type: settlementType,
+      direction: settlementDirection,
       amount: settlementAmount,
-      description: 'Full settlement',
-      paymentMethod: 'cash',
-      date: new Date()
+      note: "Full settlement",
+      date: new Date(),
     });
 
-    await loan.save();
+    await contact.save();
 
-    res.status(200).json({ 
-      message: "Loan settled successfully", 
-      loan 
-    });
-
+    res.status(200).json({ message: "Contact settled successfully", contact });
   } catch (error) {
-    console.error("Settle loan error:", error);
+    console.error("Settle contact error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 8. WhatsApp Link Generate kare (Aap ka favorite feature!)
+// ======================
+// 8. Generate WhatsApp Link
+// ======================
 export const generateWhatsAppLink = async (req, res) => {
   try {
-    const loan = await Loan.findOne({ 
-      _id: req.params.id, 
-      user: req.user.id 
-    });
+    const { id } = req.params;
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
 
-    if (!loan) {
-      return res.status(404).json({ message: "Loan contact not found" });
-    }
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    let balanceType = "⚖️ SETTLED";
+    let balanceTypeText = "⚖️ SETTLED";
     let balanceEmoji = "✅";
-    
-    if (loan.netBalance > 0) {
-      balanceType = `⚠️ YOU OWE: ₹${loan.netBalance}`;
+
+    if (contact.balanceType === "owe") {
+      balanceTypeText = `⚠️ YOU OWE: ₹${contact.currentBalance}`;
       balanceEmoji = "⚠️";
-    } else if (loan.netBalance < 0) {
-      balanceType = `💰 OWES YOU: ₹${Math.abs(loan.netBalance)}`;
+    } else if (contact.balanceType === "owed") {
+      balanceTypeText = `💰 OWES YOU: ₹${contact.currentBalance}`;
       balanceEmoji = "💰";
     }
 
     let message = `${balanceEmoji} *LifeSync - Udhaar Summary*\n\n`;
-    message += `👤 *Person:* ${loan.personName}\n`;
-    
-    if (loan.phoneNumber) {
-      message += `📱 *Contact:* ${loan.phoneNumber}\n`;
-    }
-    
-    message += `🤝 *Relationship:* ${loan.relationship}\n`;
-    message += `📊 *Status:* ${loan.isSettled ? '✅ SETTLED' : '⏳ PENDING'}\n\n`;
-    
-    message += `💎 *CURRENT BALANCE:*\n${balanceType}\n\n`;
-    
-    message += `📜 *Transaction History:*\n`;
-    message += `--------------------------------\n`;
-    
-    const recentTransactions = loan.transactions
+    message += `👤 *Person:* ${contact.name}\n`;
+    if (contact.phone) message += `📱 *Contact:* ${contact.phone}\n`;
+    message += `📊 *Status:* ${contact.balanceType.toUpperCase()}\n\n`;
+    message += `💎 *CURRENT BALANCE:*\n${balanceTypeText}\n\n`;
+    message += `📜 *Transaction History:*\n--------------------------------\n`;
+
+    const recentTransactions = contact.transactions
       .slice()
-      .sort((a, b) => new Date(b.date) - new Date(a.date))
-      .slice(0, 5);
-    
-    recentTransactions.forEach((t, index) => {
-      const dateStr = new Date(t.date).toLocaleDateString('en-PK');
-      const typeText = t.type === 'credit' ? 'YOU BORROWED' : 'YOU RETURNED/GAVE';
-      const emoji = t.type === 'credit' ? '📥' : '📤';
-      
-      message += `${emoji} *${dateStr}*\n`;
-      message += `   ${typeText}: ₹${t.amount}\n`;
-      if (t.description) {
-        message += `   (${t.description})\n`;
-      }
-      message += `\n`;
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+    recentTransactions.forEach((t) => {
+      const dateStr = new Date(t.date).toLocaleDateString("en-PK");
+      const typeText =
+        t.direction === "borrowed"
+          ? t.type === "credit"
+            ? "YOU BORROWED"
+            : "YOU RETURNED"
+          : t.type === "credit"
+          ? "YOU LENT"
+          : "YOU RECEIVED";
+
+      const emoji =
+        t.direction === "borrowed"
+          ? t.type === "credit"
+            ? "📥"
+            : "📤"
+          : t.type === "credit"
+          ? "📤"
+          : "📥";
+
+      message += `${emoji} *${dateStr}*\n   ${typeText}: ₹${t.amount}\n`;
+      if (t.note) message += `   (${t.note})\n`;
+      message += "\n";
     });
-    
-    if (loan.transactions.length > 5) {
-      message += `... and ${loan.transactions.length - 5} more transactions\n\n`;
-    }
-    
+
     message += `--------------------------------\n`;
-    message += `📅 *Last Updated:* ${new Date(loan.updatedAt).toLocaleDateString()}\n\n`;
-    message += `📱 *Generated via LifeSync App*\n`;
-    message += `✅ Keep your finances in sync!`;
+    message += `📅 *Last Updated:* ${new Date(
+      contact.updatedAt
+    ).toLocaleDateString()}\n\n`;
+    message += `📱 *Generated via LifeSync App*\n✅ Keep your finances in sync!`;
 
     const encodedMessage = encodeURIComponent(message);
     const whatsappLink = `https://wa.me/?text=${encodedMessage}`;
 
-    res.status(200).json({ 
-      success: true, 
-      whatsappLink,
-      messagePreview: message.substring(0, 150) + "..." 
-    });
-
+    res
+      .status(200)
+      .json({
+        success: true,
+        whatsappLink,
+        messagePreview: message.substring(0, 150) + "...",
+      });
   } catch (error) {
     console.error("Generate WhatsApp link error:", error);
-    res.status(500).json({ 
-      message: "Error generating WhatsApp link", 
-      error: error.message 
-    });
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
-// ✅ 9. Statistics/Dashboard ke liye data laaye
-export const getLoanStats = async (req, res) => {
+// ======================
+// 9. Get Stats
+// ======================
+export const getContactStats = async (req, res) => {
   try {
-    const stats = await Loan.aggregate([
-      { $match: { user: req.user._id } }, // <- fixed here
+    const stats = await Contact.aggregate([
+      { $match: { userId: req.user._id } },
       {
         $group: {
           _id: null,
           totalContacts: { $sum: 1 },
-          totalPending: { $sum: { $cond: [{ $eq: ["$isSettled", false] }, 1, 0] } },
-          totalSettled: { $sum: { $cond: [{ $eq: ["$isSettled", true] }, 1, 0] } },
-          totalYouOwe: {
+          totalOwe: {
             $sum: {
-              $cond: [
-                { $and: [{ $gt: ["$netBalance", 0] }, { $eq: ["$isSettled", false] }] },
-                "$netBalance",
-                0
-              ]
-            }
+              $cond: [{ $eq: ["$balanceType", "owe"] }, "$currentBalance", 0],
+            },
           },
-          totalOwesYou: {
+          totalOwed: {
             $sum: {
-              $cond: [
-                { $and: [{ $lt: ["$netBalance", 0] }, { $eq: ["$isSettled", false] }] },
-                { $abs: "$netBalance" },
-                0
-              ]
-            }
-          }
-        }
-      }
+              $cond: [{ $eq: ["$balanceType", "owed"] }, "$currentBalance", 0],
+            },
+          },
+          totalSettled: {
+            $sum: { $cond: [{ $eq: ["$balanceType", "settled"] }, 1, 0] },
+          },
+        },
+      },
     ]);
 
     const result = stats[0] || {
       totalContacts: 0,
-      totalPending: 0,
+      totalOwe: 0,
+      totalOwed: 0,
       totalSettled: 0,
-      totalYouOwe: 0,
-      totalOwesYou: 0
     };
 
-    res.status(200).json({
-      success: true,
-      stats: result
-    });
-
+    res.status(200).json({ success: true, stats: result });
   } catch (error) {
-    console.error("Get loan stats error:", error);
+    console.error("Get contact stats error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

@@ -1,62 +1,100 @@
-import mongoose from 'mongoose';
+// ============================================
+// MODELS - models/Contact.js
+// ============================================
+const mongoose = require('mongoose');
 
 const transactionSchema = new mongoose.Schema({
-  date: { type: Date, default: Date.now, required: true },
-  type: { type: String, enum: ['credit', 'debit'], required: true },
-  amount: { type: Number, required: true, min: 0 },
-  description: { type: String, default: '' },
-  paymentMethod: { 
-    type: String, 
-    enum: ['cash', 'bank', 'easypaisa', 'jazzcash', 'other'],
-    default: 'cash' 
+  date: {
+    type: Date,
+    required: true,
+    default: Date.now
+  },
+  type: {
+    type: String,
+    enum: ['credit', 'return'],
+    required: true
+  },
+  amount: {
+    type: Number,
+    required: true,
+    min: 0
+  },
+  note: {
+    type: String,
+    default: ''
+  },
+  direction: {
+    type: String,
+    enum: ['borrowed', 'lent'], // borrowed = maine liya, lent = maine diya
+    required: true
   }
 });
 
-const loanSchema = new mongoose.Schema({
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  personName: { type: String, required: true, trim: true },
-  phoneNumber: { type: String, trim: true },
-  email: { type: String, trim: true, lowercase: true },
-  relationship: {
+const contactSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  name: {
     type: String,
-    enum: ['family', 'friend', 'colleague', 'relative', 'other'],
-    default: 'friend'
+    required: true,
+    trim: true
+  },
+  phone: {
+    type: String,
+    trim: true,
+    default: ''
   },
   transactions: [transactionSchema],
-  
-  // Auto-calculated fields
-  totalCredit: { type: Number, default: 0 },
-  totalDebit: { type: Number, default: 0 },
-  netBalance: { type: Number, default: 0 },
-  
-  // Status
-  isSettled: { type: Boolean, default: false },
-  // ❌ linkedExpense field REMOVED
-  
-  lastTransactionDate: { type: Date, default: Date.now }
+  currentBalance: {
+    type: Number,
+    default: 0
+  },
+  balanceType: {
+    type: String,
+    enum: ['owe', 'owed', 'settled'], // owe = main dena hun, owed = mujhe milna hai
+    default: 'settled'
+  }
 }, {
   timestamps: true
 });
 
-// ✅ Same auto-calculation middleware
-loanSchema.pre('save', function(next) {
-  this.totalCredit = this.transactions
-    .filter(t => t.type === 'credit')
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  this.totalDebit = this.transactions
-    .filter(t => t.type === 'debit')
-    .reduce((sum, t) => sum + t.amount, 0);
-    
-  this.netBalance = this.totalCredit - this.totalDebit;
-  this.isSettled = this.netBalance === 0;
+// Calculate balance before saving
+contactSchema.pre('save', function(next) {
+  let balance = 0;
   
-  if (this.transactions.length > 0) {
-    this.lastTransactionDate = this.transactions[this.transactions.length - 1].date;
+  this.transactions.forEach(txn => {
+    if (txn.direction === 'borrowed') {
+      // Maine liya
+      if (txn.type === 'credit') {
+        balance += txn.amount; // Debt increase
+      } else {
+        balance -= txn.amount; // Return
+      }
+    } else {
+      // Maine diya
+      if (txn.type === 'credit') {
+        balance -= txn.amount; // They owe me
+      } else {
+        balance += txn.amount; // They returned
+      }
+    }
+  });
+  
+  this.currentBalance = Math.abs(balance);
+  
+  if (balance > 0) {
+    this.balanceType = 'owe'; // Main dena hun
+  } else if (balance < 0) {
+    this.balanceType = 'owed'; // Mujhe milna hai
+  } else {
+    this.balanceType = 'settled';
   }
   
   next();
 });
 
-const Loan = mongoose.model('Loan', loanSchema);
-export default Loan;
+const Contact = mongoose.model('Contact', contactSchema);
+
+module.exports = Contact;

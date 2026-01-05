@@ -1,43 +1,43 @@
 import express from 'express';
 import {
-  createLoanContact,
-  getAllLoanContacts,
-  getLoanContactById,
+  createContact,
+  getAllContacts,
+  getContactById,
   addTransaction,
-  updateLoanContact,
-  deleteLoanContact,
-  settleLoan,
+  updateContact,
+  deleteContact,
+  settleContact,
   generateWhatsAppLink,
-  getLoanStats
-} from '../controllers/loanController.js';
+  getContactStats
+} from '../controllers/contactController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// 🔐 Sab routes protected hain
+// 🔐 All routes are protected
 router.use(protect);
 
 // 📊 Statistics
-router.get('/stats', getLoanStats);
+router.get('/stats', getContactStats);
 
-// 👥 Loan Contacts Management
+// 👥 Contacts Management
 router.route('/')
-  .post(createLoanContact)    // POST /api/loans
-  .get(getAllLoanContacts);   // GET /api/loans
+  .post(createContact)   // POST /api/contacts
+  .get(getAllContacts);  // GET /api/contacts
 
-// 🔍 Specific Loan Contact
+// 🔍 Specific Contact
 router.route('/:id')
-  .get(getLoanContactById)    // GET /api/loans/:id
-  .put(updateLoanContact)     // PUT /api/loans/:id
-  .delete(deleteLoanContact); // DELETE /api/loans/:id
+  .get(getContactById)    // GET /api/contacts/:id
+  .put(updateContact)     // PUT /api/contacts/:id
+  .delete(deleteContact); // DELETE /api/contacts/:id
 
 // 💰 Transactions
-router.post('/:id/transactions', addTransaction);
+router.post('/:id/transactions', addTransaction); // POST /api/contacts/:id/transactions
 
 // ✅ Settlement
-router.post('/:id/settle', settleLoan);
+router.post('/:id/settle', settleContact);        // POST /api/contacts/:id/settle
 
-// 📱 WhatsApp Sharing (NO expense linking)
-router.get('/:id/whatsapp', generateWhatsAppLink);
+// 📱 WhatsApp Sharing
+router.get('/:id/whatsapp', generateWhatsAppLink); // GET /api/contacts/:id/whatsapp
 
 export default router;
