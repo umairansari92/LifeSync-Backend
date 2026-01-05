@@ -1,5 +1,5 @@
 // controllers/contactController.js
-import Contact from "../models/Contact.js";
+import Contact from "../models/loanModel.js";
 import mongoose from "mongoose";
 
 // Create New Contact
