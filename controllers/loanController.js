@@ -315,17 +315,13 @@ export const generateWhatsAppLink = async (req, res) => {
 export const getLoanStats = async (req, res) => {
   try {
     const stats = await Loan.aggregate([
-      { $match: { user: mongoose.Types.ObjectId(req.user.id) } },
+      { $match: { user: req.user._id } }, // <- fixed here
       {
         $group: {
           _id: null,
           totalContacts: { $sum: 1 },
-          totalPending: {
-            $sum: { $cond: [{ $eq: ["$isSettled", false] }, 1, 0] }
-          },
-          totalSettled: {
-            $sum: { $cond: [{ $eq: ["$isSettled", true] }, 1, 0] }
-          },
+          totalPending: { $sum: { $cond: [{ $eq: ["$isSettled", false] }, 1, 0] } },
+          totalSettled: { $sum: { $cond: [{ $eq: ["$isSettled", true] }, 1, 0] } },
           totalYouOwe: {
             $sum: {
               $cond: [
