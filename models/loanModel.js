@@ -1,7 +1,7 @@
 // ============================================
 // MODELS - models/Contact.js
 // ============================================
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const transactionSchema = new mongoose.Schema({
   date: {
