@@ -252,22 +252,20 @@ export const generateWhatsAppLink = async (req, res) => {
 
     if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    let balanceTypeText = "⚖️ SETTLED";
-    let balanceEmoji = "✅";
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    if (contact.balanceType === "owe") {
-      balanceTypeText = `⚠️ YOU OWE: ₹${contact.currentBalance}`;
-      balanceEmoji = "⚠️";
-    } else if (contact.balanceType === "owed") {
-      balanceTypeText = `💰 OWES YOU: ₹${contact.currentBalance}`;
-      balanceEmoji = "💰";
-    }
 
-    let message = `${balanceEmoji} *LifeSync - Udhaar Summary*\n\n`;
-    message += `👤 *Person:* ${contact.name}\n`;
-    if (contact.phone) message += `📱 *Contact:* ${contact.phone}\n`;
-    message += `📊 *Status:* ${contact.balanceType.toUpperCase()}\n\n`;
-    message += `💎 *CURRENT BALANCE:*\n${balanceTypeText}\n\n`;
+    let message = `🪙 *LifeSync - Udhaar/Qarz Summary*\n\n`;
+    message += `🤝 *Person:* ${contact.name}\n`;
+    if (contact.phone) message += `📞 *Contact:* ${contact.phone}\n`;
+    
+    // Status Logic
+    let statusText = "SETTLED";
+    if (contact.balanceType === "owe") statusText = "PENDING (You OWE)";
+    else if (contact.balanceType === "owed") statusText = "PENDING (OWES You)";
+    
+    message += `📊 *Status:* ${statusText}\n\n`;
+
     message += `📜 *Transaction History:*\n--------------------------------\n`;
 
     const recentTransactions = contact.transactions
@@ -275,34 +273,33 @@ export const generateWhatsAppLink = async (req, res) => {
       .sort((a, b) => new Date(a.date) - new Date(b.date));
 
     recentTransactions.forEach((t) => {
-      const dateStr = new Date(t.date).toLocaleDateString("en-PK");
-      const typeText =
-        t.direction === "borrowed"
-          ? t.type === "credit"
-            ? "YOU BORROWED"
-            : "YOU RETURNED"
-          : t.type === "credit"
-          ? "YOU LENT"
-          : "YOU RECEIVED";
+      const dateStr = new Date(t.date).toISOString().split('T')[0]; // YYYY-MM-DD
+      
+      let typeText = "";
+      if (t.direction === "borrowed") {
+         typeText = t.type === "credit" ? "YOU BORROWED" : "YOU RETURNED";
+      } else {
+         typeText = t.type === "credit" ? "YOU LENT" : "YOU RECEIVED";
+      }
 
-      const emoji =
-        t.direction === "borrowed"
-          ? t.type === "credit"
-            ? "📥"
-            : "📤"
-          : t.type === "credit"
-          ? "📤"
-          : "📥";
-
-      message += `${emoji} *${dateStr}*\n   ${typeText}: ₹${t.amount}\n`;
+      message += `📅 *${dateStr}*\n   ${typeText}: ₹${t.amount}\n`;
       if (t.note) message += `   (${t.note})\n`;
       message += "\n";
     });
 
-    message += `--------------------------------\n`;
-    message += `📅 *Last Updated:* ${new Date(
-      contact.updatedAt
-    ).toLocaleDateString()}\n\n`;
+    let balanceEmoji = "⚖️";
+    let balanceString = "SETTLED";
+    
+    if (contact.balanceType === "owe") {
+      balanceEmoji = "⚠️";
+      balanceString = `YOU OWE: ₹${contact.currentBalance}`;
+    } else if (contact.balanceType === "owed") {
+      balanceEmoji = "✅";
+      balanceString = `OWES YOU: ₹${contact.currentBalance}`;
+    }
+
+    message += `💎 *CURRENT BALANCE:*\n   ${balanceEmoji} ${balanceString}\n`;
+    message += `--------------------------------\n\n`;
     message += `📱 *Generated via LifeSync App*\n✅ Keep your finances in sync!`;
 
     const encodedMessage = encodeURIComponent(message);
