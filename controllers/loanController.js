@@ -282,7 +282,7 @@ export const generateWhatsAppLink = async (req, res) => {
          typeText = t.type === "credit" ? "YOU LENT" : "YOU RECEIVED";
       }
 
-      message += `📅 *${dateStr}*\n   ${typeText}: ₹${t.amount}\n`;
+      message += `📅 *${dateStr}*\n   ${typeText}: Rs. ${t.amount}\n`;
       if (t.note) message += `   (${t.note})\n`;
       message += "\n";
     });
@@ -292,10 +292,10 @@ export const generateWhatsAppLink = async (req, res) => {
     
     if (contact.balanceType === "owe") {
       balanceEmoji = "⚠️";
-      balanceString = `YOU OWE: ₹${contact.currentBalance}`;
+      balanceString = `YOU OWE: Rs. ${contact.currentBalance}`;
     } else if (contact.balanceType === "owed") {
       balanceEmoji = "✅";
-      balanceString = `OWES YOU: ₹${contact.currentBalance}`;
+      balanceString = `OWES YOU: Rs. ${contact.currentBalance}`;
     }
 
     message += `💎 *CURRENT BALANCE:*\n   ${balanceEmoji} ${balanceString}\n`;
