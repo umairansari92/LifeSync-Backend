@@ -24,6 +24,7 @@
     "express": "^5.1.0",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^8.2.1",
+    "html2canvas-pro": "^1.6.4",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.19.2",
