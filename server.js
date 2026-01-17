@@ -22,7 +22,7 @@ app.set("trust proxy", 1);
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  "https://lifesynchub.vercel.app",
+  "https://app-lifesynchub.vercel.app",
   "http://localhost:5173"
 ];
 
