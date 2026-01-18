@@ -13,10 +13,12 @@ const uploadLogo = async () => {
     const logoPath = path.join(__dirname, "tests", "logo.png");
     console.log("Uploading logo from:", logoPath);
 
+    // Using a new public_id to ensure a fresh upload and avoid cache issues
     const result = await cloudinary.uploader.upload(logoPath, {
       folder: "lifesync_assets",
-      public_id: "lifesync_logo_email",
+      public_id: "lifesync_logo_v2",
       overwrite: true,
+      resource_type: "image",
     });
 
     console.log("✅ Logo uploaded successfully!");
