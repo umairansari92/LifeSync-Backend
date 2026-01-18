@@ -105,6 +105,9 @@ app.use("/api/contacts", contactRoutes);
 import weatherRoutes from "./routes/weatherRoutes.js";
 app.use("/api/weather", weatherRoutes);
 
+import { startCronJobs } from "./utils/cronJobs.js";
+startCronJobs();
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
