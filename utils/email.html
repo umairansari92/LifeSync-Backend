@@ -182,61 +182,59 @@
       <td align="center">
         <table class="email-container" width="600" cellpadding="0" cellspacing="0" role="presentation">
 
-          <!-- Header -->
-          <tr>
-            <td class="header">
-              <!-- Inline styling for email client compatibility -->
-              <table width="100%" role="presentation">
-                <tr>
-                  <td align="center" style="padding-bottom: 0;">
-                    <img
-                      src="https://res.cloudinary.com/ddo80idv1/image/upload/v1768769940/lifesync_assets/lifesync_logo_v2.png?v=3"
-                      alt="LifeSync Logo" width="140" height="140"
-                      style="display:block; margin:0 auto; border:0; outline:none; text-decoration:none;">
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
+          <td class="body-content">
+            <!-- Grid Layout for Header Text & Logo -->
+            <table width="100%" role="presentation" border="0" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="vertical-align: middle; padding-right: 20px; text-align: left;">
+                  <h1 style="font-size: 24px; margin:0 0 10px; color: #f5c542;">VERIFY YOUR ACCOUNT</h1>
+                  <p style="margin: 0; font-size: 16px;">Hello,</p>
+                  <p style="margin: 5px 0 0; font-size: 14px; color:#a0a0a0;">We received a request to access
+                    <strong>%APP_NAME%</strong>.</p>
+                </td>
+                <td width="100" style="vertical-align: middle; text-align: right;">
+                  <img
+                    src="https://res.cloudinary.com/ddo80idv1/image/upload/v1768769940/lifesync_assets/lifesync_logo_v2.png?v=3"
+                    alt="LifeSync Logo" width="100" height="100"
+                    style="display:block; border-radius: 50%; width: 100px; height: 100px; object-fit: cover; border: 2px solid #f5c542;">
+                </td>
+              </tr>
+            </table>
 
-          <!-- Body -->
-          <tr>
-            <td class="body-content">
-              <h1>Verify Your Account</h1>
-              <p>Hello,</p>
-              <p>We received a request to verify your email address for <strong>%APP_NAME%</strong>. Use the code below
-                to complete your secure login.</p>
+            <div style="border-top: 1px solid rgba(245, 197, 66, 0.2); margin: 25px 0;"></div>
 
-              <div class="otp-wrapper">
-                <div class="otp-code">%OTP_CODE%</div>
-              </div>
+            <p style="text-align: center;">Use the code below to complete your secure login.</p>
 
-              <p style="font-size: 14px; opacity: 0.8;">This code will expire in 15 minutes.</p>
+            <div class="otp-wrapper" style="text-align: center;">
+              <div class="otp-code">%OTP_CODE%</div>
+            </div>
 
-              <div style="margin-top: 25px;">
-                <a href="%VERIFY_URL%" class="btn">Verify Now</a>
-              </div>
+            <p style="font-size: 14px; opacity: 0.8; text-align: center;">This code will expire in 15 minutes.</p>
 
-              <p style="font-size: 12px; margin-top: 35px; color: #888888;">
-                Or copy this link: <br>
-                <a href="%VERIFY_URL%" style="color: #f5c542; word-break: break-all;">%VERIFY_URL%</a>
-              </p>
-            </td>
-          </tr>
+            <div style="margin-top: 25px; text-align: center;">
+              <a href="%VERIFY_URL%" class="btn">Verify Now</a>
+            </div>
 
-          <!-- Footer -->
-          <tr>
-            <td class="footer">
-              <p>If you did not request this, you can safely ignore this email.</p>
-              <p>&copy; 2026 %APP_NAME%. All rights reserved.</p>
-              <p>%COMPANY_ADDRESS%</p>
-              <p>Developed by <a href="https://dataversetechnologies.vercel.app/">DataVerse Technologies</a></p>
-            </td>
-          </tr>
+            <p style="font-size: 12px; margin-top: 35px; color: #888888; text-align: center;">
+              Or copy this link: <br>
+              <a href="%VERIFY_URL%" style="color: #f5c542; word-break: break-all;">%VERIFY_URL%</a>
+            </p>
+          </td>
+    </tr>
 
-        </table>
+    <!-- Footer -->
+    <tr>
+      <td class="footer">
+        <p>If you did not request this, you can safely ignore this email.</p>
+        <p>&copy; 2026 %APP_NAME%. All rights reserved.</p>
+        <p>%COMPANY_ADDRESS%</p>
+        <p>Developed by <a href="https://dataversetechnologies.vercel.app/">DataVerse Technologies</a></p>
       </td>
     </tr>
+
+  </table>
+  </td>
+  </tr>
   </table>
 </body>
 
