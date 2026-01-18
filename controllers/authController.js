@@ -321,13 +321,25 @@ export const verifyResetOtp = async (req, res) => {
   return res.status(200).json({ message: "Feature coming soon" });
 };
 
-export const resetPassword = async (req, res) => {
-  try {
-    const { email, newPassword } = req.body;
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.findOneAndUpdate({ email }, { password: hashedPassword });
     return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// ===========================
+// EMAIL UPDATE OTP (DISABLED/STUB)
+// ===========================
+
+export const requestEmailUpdateOtp = async (req, res) => {
+  return res.status(200).json({
+    message: "Email update OTP disabled.",
+  });
+};
+
+export const updateEmail = async (req, res) => {
+  return res.status(200).json({
+    message: "Direct email update disabled until OTP re-enabled.",
+  });
 };
