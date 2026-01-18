@@ -13,7 +13,7 @@ import namazRoutes from "./routes/namazRoutes.js";
 import quranRoutes from "./routes/quranRoutes.js";
 import tasbeehRoutes from "./routes/tasbeehRoutes.js";
 import specialExpenseRoutes from "./routes/specialExpenseRoutes.js";
-import contactRoutes from './routes/loanRoutes.js';
+import contactRoutes from "./routes/loanRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -23,7 +23,9 @@ app.set("trust proxy", 1);
 const allowedOrigins = [
   process.env.CLIENT_URL,
   "https://app-lifesynchub.vercel.app",
-  "http://localhost:5173"
+  "https://lifesynchub.vercel.app",
+  "http://localhost:5173",
+  "http://localhost:3000",
 ];
 
 const corsOptions = {
@@ -36,7 +38,7 @@ const corsOptions = {
   },
   credentials: true,
   allowedHeaders: ["Content-Type", "Authorization"],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
 };
 
 app.use(cors(corsOptions));
@@ -98,7 +100,7 @@ app.use("/api/finance", financeRoutes);
 // Weather API Routes
 
 // Contacts API
-app.use('/api/contacts', contactRoutes );
+app.use("/api/contacts", contactRoutes);
 
 import weatherRoutes from "./routes/weatherRoutes.js";
 app.use("/api/weather", weatherRoutes);
