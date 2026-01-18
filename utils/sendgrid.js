@@ -37,7 +37,8 @@ export const sendOtpEmail = async (email, otpCode) => {
 
     const appName = "LifeSync";
     const expiryMinutes = 15;
-    const verifyUrl = `${process.env.CLIENT_URL}/verify-otp?email=${email}&otp=${otpCode}`;
+    const baseUrl = process.env.CLIENT_URL.replace(/\/$/, "");
+    const verifyUrl = `${baseUrl}/verify-otp?email=${email}&otp=${otpCode}`;
 
     htmlContent = htmlContent
       .replace(/%APP_NAME%/g, appName)
