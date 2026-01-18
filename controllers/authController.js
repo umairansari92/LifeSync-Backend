@@ -321,6 +321,10 @@ export const verifyResetOtp = async (req, res) => {
   return res.status(200).json({ message: "Feature coming soon" });
 };
 
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     await User.findOneAndUpdate({ email }, { password: hashedPassword });
     return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
