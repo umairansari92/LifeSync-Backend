@@ -3,14 +3,19 @@ import cloudinary from "../config/cloudinary.js";
 import fs from "fs";
 import { Readable } from "stream";
 import bcrypt from "bcrypt";
-// import Otp from "../models/otp.js";
-// import { generateOtp } from "../utils/generateOtp.js";
-// import { sendEmail } from "../utils/sendEmail.js";
-// import { generateOtpEmail } from "../utils/emailTemplates.js";
+import Otp from "../models/otp.js";
+import { sendEmail } from "../utils/sendgrid.js";
+import { generateOtpEmail } from "../utils/emailTemplates.js";
 import Notes from "../models/note.js";
 import Tasks from "../models/taskModel.js";
 import Expenses from "../models/expenseModel.js";
 import User from "../models/user.js";
+import crypto from "crypto";
+
+// Helper to generate numeric OTP
+const generateOtp = (length = 6) => {
+  return crypto.randomInt(100000, 999999).toString();
+};
 
 export const getProfile = (req, res) => {
   const user = req.user; // from middleware
