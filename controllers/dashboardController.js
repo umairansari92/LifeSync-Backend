@@ -46,8 +46,12 @@ export const getDashboardData = asyncHandler(async (req, res) => {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const todayStart = new Date(now.setHours(0, 0, 0, 0));
-  const todayEnd = new Date(new Date().setHours(23, 59, 59, 999));
+  
+  // Get today's date in YYYY-MM-DD format (consistent with Namaz model)
+  const todayDateString = now.toISOString().split('T')[0];
+  
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+  const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
   // ================= NAMAZ LOGIC (DYNAMIC & SYNCED) =================
 let nextPrayerLabel = "Not available";
@@ -175,7 +179,7 @@ try {
     // Fetch today's prayer data from Namaz collection
     Namaz.findOne({
       user: userId,
-      date: todayStart.toISOString().split('T')[0], // Format: YYYY-MM-DD
+      date: todayDateString, // Format: YYYY-MM-DD
     }).lean(),
   ]);
 
