@@ -4,6 +4,7 @@ import Note from "../models/note.js";
 import User from "../models/user.js";
 import Task from "../models/taskModel.js";
 import Expense from "../models/expenseModel.js";
+import Namaz from "../models/namazModel.js";
 import asyncHandler from "express-async-handler";
 import { Coordinates, CalculationMethod, PrayerTimes } from "adhan";
 
@@ -105,6 +106,7 @@ try {
     latestExpenses,
     latestTasks,
     latestNotes,
+    todayPrayers,
   ] = await Promise.all([
     User.findById(userId)
       .select("firstname lastname email dob profileImageUrl")
@@ -169,6 +171,12 @@ try {
       .sort({ createdAt: -1 })
       .limit(3)
       .lean(),
+
+    // Fetch today's prayer data from Namaz collection
+    Namaz.findOne({
+      user: userId,
+      date: todayStart.toISOString().split('T')[0], // Format: YYYY-MM-DD
+    }).lean(),
   ]);
 
   const tasks = taskSummary[0] || { totalTasks: 0, completedTasks: 0 };
@@ -230,7 +238,7 @@ try {
         pending: 1,
       },
       namaz: {
-        doneToday: 4,
+        doneToday: todayPrayers ? Object.values(todayPrayers.prayers).filter(Boolean).length : 0,
         nextPrayer: nextPrayerLabel,
         onTimeRate: "95%",
       },
