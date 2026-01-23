@@ -113,6 +113,22 @@ export const getContactById = async (req, res) => {
   }
 };
 
+// Validate loan direction consistency
+const validateLoanDirection = (transactions, newTransaction) => {
+  if (transactions.length === 0) return true; // First transaction is always valid
+  
+  const existingDirections = new Set(transactions.map(t => t.direction));
+  
+  // If mixed directions exist, it's invalid
+  if (existingDirections.size > 1) {
+    return false;
+  }
+  
+  // Check if new transaction conflicts with existing
+  const existingDirection = existingDirections.values().next().value;
+  return newTransaction.direction === existingDirection;
+};
+
 // Add Transaction
 export const addTransaction = async (req, res) => {
   try {
@@ -142,13 +158,22 @@ export const addTransaction = async (req, res) => {
     const contact = await Contact.findOne({ _id: id, userId: req.user.id });
     if (!contact) return res.status(404).json({ message: "Contact not found" });
 
-    contact.transactions.push({
+    // Validate loan direction
+    const newTxn = {
       type,
       amount: parseFloat(amount),
       direction,
       note: note?.trim() || "",
       date: date ? new Date(date) : new Date(),
-    });
+    };
+
+    if (!validateLoanDirection(contact.transactions, newTxn)) {
+      return res.status(400).json({ 
+        message: "Cannot mix loan directions. This contact already has a different loan type." 
+      });
+    }
+
+    contact.transactions.push(newTxn);
 
     try {
       await contact.save();
@@ -161,6 +186,94 @@ export const addTransaction = async (req, res) => {
     res.status(200).json({ message: "Transaction added successfully", loan: contact });
   } catch (error) {
     console.error("Add transaction error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Edit Transaction
+export const editTransaction = async (req, res) => {
+  try {
+    const { id, txnId } = req.params;
+    const { type, amount, direction, note, date } = req.body;
+
+    if (!type || !["credit", "return"].includes(type)) {
+      return res.status(400).json({ message: "Transaction type must be 'credit' or 'return'" });
+    }
+
+    if (!direction || !["borrowed", "lent"].includes(direction)) {
+      return res.status(400).json({ message: "Transaction direction must be 'borrowed' or 'lent'" });
+    }
+
+    if (amount === undefined || isNaN(amount) || Number(amount) < 0) {
+      return res.status(400).json({ message: "Amount must be non-negative" });
+    }
+
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+
+    const txnIndex = contact.transactions.findIndex(t => t._id.toString() === txnId);
+    if (txnIndex === -1) return res.status(404).json({ message: "Transaction not found" });
+
+    // Get all other transactions for direction validation
+    const otherTransactions = contact.transactions.filter((t, idx) => idx !== txnIndex);
+    const updatedTxn = {
+      type,
+      amount: parseFloat(amount),
+      direction,
+      note: note?.trim() || "",
+      date: date ? new Date(date) : new Date(),
+    };
+
+    if (!validateLoanDirection(otherTransactions, updatedTxn)) {
+      return res.status(400).json({ 
+        message: "Cannot change direction. Other transactions use a different loan type." 
+      });
+    }
+
+    // Update the transaction
+    contact.transactions[txnIndex] = {
+      ...contact.transactions[txnIndex].toObject(),
+      ...updatedTxn,
+    };
+
+    try {
+      await contact.save();
+    } catch (saveErr) {
+      console.error("Mongoose save error:", saveErr.errors || saveErr);
+      return res.status(400).json({ message: "Validation error", error: saveErr.message });
+    }
+
+    res.status(200).json({ message: "Transaction updated successfully", loan: contact });
+  } catch (error) {
+    console.error("Edit transaction error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// Delete Transaction
+export const deleteTransaction = async (req, res) => {
+  try {
+    const { id, txnId } = req.params;
+
+    const contact = await Contact.findOne({ _id: id, userId: req.user.id });
+    if (!contact) return res.status(404).json({ message: "Contact not found" });
+
+    const txnIndex = contact.transactions.findIndex(t => t._id.toString() === txnId);
+    if (txnIndex === -1) return res.status(404).json({ message: "Transaction not found" });
+
+    // Remove the transaction
+    contact.transactions.splice(txnIndex, 1);
+
+    try {
+      await contact.save();
+    } catch (saveErr) {
+      console.error("Mongoose save error:", saveErr.errors || saveErr);
+      return res.status(400).json({ message: "Validation error", error: saveErr.message });
+    }
+
+    res.status(200).json({ message: "Transaction deleted successfully", loan: contact });
+  } catch (error) {
+    console.error("Delete transaction error:", error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

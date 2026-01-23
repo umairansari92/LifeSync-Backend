@@ -4,6 +4,8 @@ import {
   getAllContacts,
   getContactById,
   addTransaction,
+  editTransaction,
+  deleteTransaction,
   updateContact,
   deleteContact,
   settleContact,
@@ -33,6 +35,8 @@ router.route('/:id')
 
 // 💰 Transactions
 router.post('/:id/transactions', addTransaction); // POST /api/contacts/:id/transactions
+router.put('/:id/transactions/:txnId', editTransaction); // PUT /api/contacts/:id/transactions/:txnId
+router.delete('/:id/transactions/:txnId', deleteTransaction); // DELETE /api/contacts/:id/transactions/:txnId
 
 // ✅ Settlement
 router.post('/:id/settle', settleContact);        // POST /api/contacts/:id/settle
