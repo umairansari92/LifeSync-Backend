@@ -98,12 +98,15 @@ app.use("/api/income", incomeRoutes);
 app.use("/api/finance", financeRoutes);
 
 // Weather API Routes
+import weatherRoutes from "./routes/weatherRoutes.js";
+app.use("/api/weather", weatherRoutes);
+
+// Masjid Finder Routes
+import masjidRoutes from "./routes/masjidRoutes.js";
+app.use("/api/masjid", masjidRoutes);
 
 // Contacts API
 app.use("/api/contacts", contactRoutes);
-
-import weatherRoutes from "./routes/weatherRoutes.js";
-app.use("/api/weather", weatherRoutes);
 
 import { startCronJobs } from "./utils/cronJobs.js";
 startCronJobs();
